@@ -1,0 +1,29 @@
+/* @import url("https//db.onlinewebfonts.com/c/0b7d8a39b62b28cf0cfe3cea90b8baa3?family=Gabriel+Weiss'+Friends+Font"); */
+@import url('https://fonts.googleapis.com/css?family=Permanent+Marker&display=swap');
+body {
+    background: linear-gradient( rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.02) ), url(images/MainBackground.jpg);
+  /* background-image: url("images/MainBackground.jpg"); */
+  background-repeat: no-repeat;
+  background-size: cover;
+  width: 100vw; 
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Permanent Marker', cursive;
+}
+
+#search-input {
+    width: 50vw;
+    height: 5vh;
+    font-size: large;
+    border-radius: 50px;
+    border: none;
+    /* font-family: "Gregor Miller's Friends Font"; */
+    font-family: inherit;
+}
+
+#search-button {
+    font-family: inherit;
+
+}

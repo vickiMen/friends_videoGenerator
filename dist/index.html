@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://kit.fontawesome.com/4815d1e193.js" crossorigin="anonymous"></script>
+    <!-- <link href="//db.onlinewebfonts.com/c/0b7d8a39b62b28cf0cfe3cea90b8baa3?family=Gabriel+Weiss'+Friends+Font" rel="stylesheet" type="text/css"/> -->
+    <link rel="stylesheet" href="style.css">
+    <title>Weather App</title>
+</head>
+
+<body>
+    <header>
+
+    </header>
+    <!-- <div class="search">
+        <input type="text" id="search-input">
+        <i id="search-button" class="fa fa-search" aria-hidden="true"></i>
+    </div> -->
+
+    <div id="container">
+        <input type="text" id="search-input">
+        <button id="search-button" >Search</button>
+        <button id="search-button" >I'm Feeling Lucky!</button>
+    </div>
+
+    <script id="video-template" type="text/x-handlebars-template">
+        {{#each cities}}
+        <div class="city-container">
+            <p class="city-title">{{ name }}</p>
+            <p class="city-temperature">{{temperature}} &#8451</p>
+            <img src="http://openweathermap.org/img/wn/{{conditionPic}}@2x.png" class="city-condition-pic">
+            <p class="city-condition">{{condition}}</p>
+            {{#if (isDefined _id)}}
+            <i class="fas fa-trash-alt remove-button"></i>
+            {{else}}
+                <i class="fas fa-save save-button"></i>            
+            {{/if}}
+            <i class="fa fa-refresh refresh-button" aria-hidden="true"></i>
+            <p class="city-updated-at">Updated at: {{dateFormat updatedAt}}</p>
+        </div>
+        {{/each}}
+    </script>
+
+    <script src="jquery/dist/jquery.js"></script>
+    <script src="handlebars/dist/handlebars.js"></script>
+    <script src="https://unpkg.com/moment"></script>
+    <script src="Renderer.js"></script>
+    <script src="ApiManager.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
