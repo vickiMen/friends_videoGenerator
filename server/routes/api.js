@@ -43,12 +43,12 @@ var Episode = require("../models/Episode");
 var SearchedWord = require("../models/SearchedWord");
 var execSync = require("child_process").execSync;
 var exec = require("child_process").exec;
-var apiKey = "AIzaSyAcvhgH1AvRAY3aFF6NUUdyD4xRBko0Rm8";
+var apiKey = "AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI";
 var rp = require("request-promise");
 var getTranscript = require('../modules/transcript');
-var videoGenerator3 = require('../modules/videoGenerator3');
+var generateVideo = require('../modules/videoGenerator3');
 router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var sentenceToBuild, wordsToLookUpArr, dbSearchPromises, dbUpdatePromises, masterVideoIds, apiPromisess, foundwords, masterWordsData, resolvedApiPromises, timeDataArr;
+    var sentenceToBuild, wordsToLookUpArr, dbSearchPromises, dbUpdatePromises, masterVideoIds, apiPromisess, foundwords, masterWordsData, resolvedApiPromises;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -60,10 +60,13 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                 apiPromisess = [];
                 // 1. Search for words in the episodes
                 wordsToLookUpArr.forEach(function (word) {
+                    console.log(wordsToLookUpArr);
                     dbSearchPromises.push(Episode.aggregate([
                         {
                             $match: {
-                                script: new RegExp("" + word, "i")
+                                script: {
+                                    $regex: " " + word + " ", $options: 'i'
+                                }
                             }
                         },
                         {
@@ -93,18 +96,46 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                     var newArr = [];
                     var items = JSON.parse(responseObj).items;
                     items.forEach(function (item) { return newArr.push(item.id.videoId); });
-                    // console.log('api:"items)
                     masterWordsData[i].videoIds = newArr;
-                    // masterWordsData.forEach( wordData => { 
-                    // wordData.videoIds = []
-                    // items.forEach( item => wordData.videoIds = newArr)
-                    // })
                 });
-                console.log('masterWordsData:', masterWordsData);
-                masterWordsData.forEach(function (wordData) {
-                    wordData.videoIds.forEach(function (id) { return console.log(id); });
+                masterWordsData.forEach(function (word) {
+                    return dbUpdatePromises.push(Episode.update({
+                        season: word.season,
+                        episode: word.episode
+                    }, {
+                        $set: {
+                            videoIds: word.videoIds
+                        }
+                    }));
                 });
-                timeDataArr = [];
+                return [4 /*yield*/, Promise.all(dbUpdatePromises)
+                    // videoIdsArr = videoIdsArr.map(ids => {return ids[0]})
+                    // 3. Get transcript for each episode (Dor's + Vicki's part)
+                ];
+            case 3:
+                _a.sent();
+                // videoIdsArr = videoIdsArr.map(ids => {return ids[0]})
+                // 3. Get transcript for each episode (Dor's + Vicki's part)
+                return [4 /*yield*/, masterWordsData.forEach(function (wordData) {
+                        console.log('what am i sending?', wordData.videoIds[0]);
+                        getTranscript(wordData.videoIds[0]);
+                    })
+                    //   // 5. Get video part for each word (Efrat's part)
+                    //   const newArr = []
+                    //   for (let i=0; i<5; i++){
+                    //         newArr.push(timeDataArr[0][i])
+                    //     }
+                ];
+            case 4:
+                // videoIdsArr = videoIdsArr.map(ids => {return ids[0]})
+                // 3. Get transcript for each episode (Dor's + Vicki's part)
+                _a.sent();
+                //   // 5. Get video part for each word (Efrat's part)
+                //   const newArr = []
+                //   for (let i=0; i<5; i++){
+                //         newArr.push(timeDataArr[0][i])
+                //     }
+                generateVideo(wordsToLookUpArr);
                 return [2 /*return*/];
         }
     });

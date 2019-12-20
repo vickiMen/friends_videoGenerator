@@ -4,12 +4,12 @@ const execSync = require('child_process').execSync;
 const mongoose = require('mongoose')
 const searchedWord = require('../models/SearchedWord')
 
-const downloadFolder = "./video_outputs"
-const videoCutsFolder = "./video_cuts"
-const videoFinalFolder = "./video_final"
+const downloadFolder = "/Users/vickimenashe/Documents/Elevation/frienerator/server/modules/video_outputs"
+const videoCutsFolder = "/Users/vickimenashe/Documents/Elevation/frienerator/server/modules/video_cuts"
+const videoFinalFolder = "/Users/vickimenashe/Documents/Elevation/frienerator/server/modules/video_final"
 let counter = 0
 
-const dbSearchPromises: Array<object> = []
+const dbSearchInternalPromises: Array<object> = []
 let videoOutputs: Array<string> = []
 
 interface timeStampObj {
@@ -23,17 +23,6 @@ interface videoData {
     output?: any
 }
 
-const pass = 'T23Cd93@g62EmrQ'
-
-mongoose.connect(`mongodb://vicki:${encodeURIComponent(pass)}@ds127506.mlab.com:27506/heroku_drzf9z0f`, { useNewUrlParser: true}, (err)=>
-    {
-        if(err) {
-            console.log('Some problem with the connection ' +err);
-        } else {
-            console.log('The Mongoose connection is ready');
-        }
-    }
-)
 
 
 const selectRandomEpisode = function(array){
@@ -47,9 +36,9 @@ const grabMp4Ext = function(file) {
 
 const generateVideo = async function(wordsToLookUpArr: Array<string>){
 
-    wordsToLookUpArr.forEach( word => {
-        dbSearchPromises.push(
-            searchedWord.findOne({
+    wordsToLookUpArr.forEach( async word => {
+        dbSearchInternalPromises.push(
+            await searchedWord.findOne({
                 word: word
             },
             {
@@ -59,10 +48,14 @@ const generateVideo = async function(wordsToLookUpArr: Array<string>){
         )
     })
 
-    const matchedEpisodes: any = await Promise.all(dbSearchPromises)
+    console.log(dbSearchInternalPromises)
+
+    const matchedEpisodes: any = await Promise.all(dbSearchInternalPromises)
+    console.log('matchedEpisodesd: ', matchedEpisodes)
     let masterMatchedEpisodesData: Array<Array<videoData>> = []
     masterMatchedEpisodesData = matchedEpisodes.map( me => me.matchedEpisodes.flat())
-    console.log(masterMatchedEpisodesData)
+    console.log('matchedEpisodes: ', matchedEpisodes)
+    console.log('here:', masterMatchedEpisodesData)
 
     masterMatchedEpisodesData.forEach( (ed, i) => {
         let chosenEpisode = ed[selectRandomEpisode(ed)]
@@ -81,70 +74,22 @@ const generateVideo = async function(wordsToLookUpArr: Array<string>){
     
       
     let finalCommands: Array<string> = []
-    const cutVideoFiled: Array<string> = fs.readdirSync(videoCutsFolder)
-    cutVideoFiled.filter( cv => grabMp4Ext(cv)).forEach( video => {
-        finalCommands.push()
-        execSync(`ffmpeg -i video_0.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate_1.ts;ffmpeg -i video_1.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate_2.ts; ffmpeg -i "concat:intermediate_1.ts|intermediate_2.ts" -c copy -bsf:a aac_adtstoasc output.mp4`,  {stdio: 'inherit', cwd: downloadFolder})
-    }
+    // let videoNames: Array<string> = []
+    let intermediateCommands: Array<string> = []
+
+    const cutVideoFiles: Array<string> = fs.readdirSync(videoCutsFolder)
+
+    cutVideoFiles.filter( cv => grabMp4Ext(cv)).forEach( (video,i) => {
+        // videoNames.push(video.split('.mp4')[0])
+        finalCommands.push(`ffmpeg -i ${video} -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate_${i}.ts;`)
+        intermediateCommands.push(`intermediate_${i}.ts|`)
+    })
+
+    intermediateCommands[intermediateCommands.length-1] = intermediateCommands[intermediateCommands.length-1].slice(0,-1)
     
 
-    // let seperateFilesToConcat = [] //an array that gives me just the name of the file, without the extension
-    // let filesWithTSExtension = [] //an array that gives me a name with a .ts extenstion - i.e video1.ts
-
-
-    // let files = fs.readdirSync(videoCutsFolder) //reads through the VideoLinks folder, where the cut videos are
-
-    // //filters just the mp4 videos and pushes their name only into the seperateFilesToConcat array
-    // for (let i of files){
-    //     if (path.extname(i) == ".mp4"){
-    //         seperateFilesToConcat.push(path.basename(`./${videoCutsFolder}/${i}`, ".mp4"))
-    //     } 
-    // }
-
-    // let filesToIntermediateCommand = [] //an array that gives me the command to intermediate each video
-
-    // //writes the correct command for each video and pushes the file with the .ts extension its array
-    // seperateFilesToConcat.forEach(i => {
-    //     let command = `ffmpeg -i ${i}.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts ${i}.ts;`
-    //     filesToIntermediateCommand.push(command)
-    //     filesWithTSExtension.push(`${i}.ts`)
-    // })
-
-
-    // let concatThis = [] // array that holds each intermediate file name without | if it's the last and with | if not
-
-    // const concatingStatement = function(array){
-    //     for (let i=0; i<array.length; i++){
-    //         if (array[i] != array[array.length-1]){
-    //         concatThis.push(`${array[i]}|`)
-    //         } else {
-    //             concatThis.push(`${array[i]}`)
-    //         }
-    //     } 
-    // }
-    // concatingStatement(filesWithTSExtension)
-
-    // let lastConcat = concatThis.join("")
-    // let lastConcatCommand = `ffmpeg -i "concat:${lastConcat}" -c copy -bsf:a aac_adtstoasc Final${videoCounter}.mp4`
-
-
-    // let finalFullConcatCommand = filesToIntermediateCommand.join("") + lastConcatCommand
-
-
-    // const makeMeConcated = function(command){
-    //     execSync(command, {stdio: 'inherit', cwd: downloadFolder})
-    // }
-    // makeMeConcated(finalFullConcatCommand)
-
-    // const port = 8001
-    // // app.listen(port, function () {
-    // //     console.log("running on port " + port)
-    // // })
-
-
+    execSync(`${finalCommands.join('')} ffmpeg -i "concat:${intermediateCommands.join('')}" -c copy -bsf:a aac_adtstoasc output.mp4`,  {stdio: 'inherit', cwd: videoCutsFolder})
 
 }
 
-generateVideo(['Ross', 'Vegas'])
-
-// module.exports = final
+module.exports = generateVideo

@@ -154,10 +154,11 @@ const retrieveTimeStamppData = async function(youtubeVideoID){
       
     //TODO: write code that saves timeData into the 'episodes' collection, using the videoID property
     //TODO: delete file after done
+    // console.log(timeData)
     return timeData
 }
 
 
-retrieveTimeStamppData('NXTIZqrg8wU')
+// retrieveTimeStamppData('NXTIZqrg8wU')
 
 module.exports = retrieveTimeStamppData

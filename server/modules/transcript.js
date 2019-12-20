@@ -137,16 +137,18 @@ var retrieveTimeStamppData = function (youtubeVideoID) {
                         // timeData.forEach( td => console.log(td.matchedEpisodes[0].timeStamp.duration))
                         //TODO: write code that saves timeData into the 'episodes' collection, using the videoID property
                         //TODO: delete file after done
+                        // console.log(timeData)
                     ];
                 case 1:
                     _a.sent();
                     // timeData.forEach( td => console.log(td.matchedEpisodes[0].timeStamp.duration))
                     //TODO: write code that saves timeData into the 'episodes' collection, using the videoID property
                     //TODO: delete file after done
+                    // console.log(timeData)
                     return [2 /*return*/, timeData];
             }
         });
     });
 };
-retrieveTimeStamppData('NXTIZqrg8wU');
+// retrieveTimeStamppData('NXTIZqrg8wU')
 module.exports = retrieveTimeStamppData;

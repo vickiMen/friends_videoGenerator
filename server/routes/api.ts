@@ -5,10 +5,10 @@ const Episode = require("../models/Episode")
 const SearchedWord = require("../models/SearchedWord")
 const execSync = require("child_process").execSync
 const exec = require("child_process").exec
-const apiKey = "AIzaSyAcvhgH1AvRAY3aFF6NUUdyD4xRBko0Rm8"
+const apiKey = "AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI"
 const rp = require("request-promise")
 const getTranscript = require('../modules/transcript')
-const videoGenerator3 = require('../modules/videoGenerator3')
+const generateVideo = require('../modules/videoGenerator3')
 import dbFirstSetup = require('../modules/dbFirstSetup')
 export import episodeDbObject = dbFirstSetup.episodeDbObject
 
@@ -29,11 +29,14 @@ router.get("/getVideo/:sentence", async (req, res) => {
   
   // 1. Search for words in the episodes
   wordsToLookUpArr.forEach( word => {
+    console.log(wordsToLookUpArr)
     dbSearchPromises.push(
       Episode.aggregate([
         {
           $match: {
-            script: new RegExp(`${word}`, "i")
+            script: {
+              $regex: ` ${word} `, $options: 'i'
+            }
           }
         },
         {
@@ -69,7 +72,7 @@ router.get("/getVideo/:sentence", async (req, res) => {
 
  masterWordsData.forEach( word => 
   dbUpdatePromises.push(
-    Episode.upate(
+    Episode.update(
       {
         season: word.season,
         episode: word.episode 
@@ -87,7 +90,8 @@ await Promise.all(dbUpdatePromises)
 // videoIdsArr = videoIdsArr.map(ids => {return ids[0]})
 // 3. Get transcript for each episode (Dor's + Vicki's part)
 await masterWordsData.forEach( wordData => {
-  wordData.videoIds.forEach(videoId => getTranscript(wordData.videoIds))
+  console.log('what am i sending?', wordData.videoIds[0])
+  getTranscript(wordData.videoIds[0])
 }) 
 
 //   // 5. Get video part for each word (Efrat's part)
@@ -95,7 +99,7 @@ await masterWordsData.forEach( wordData => {
 //   for (let i=0; i<5; i++){
 //         newArr.push(timeDataArr[0][i])
 //     }
-  videoGenerator3(wordsToLookUpArr)
+  generateVideo(wordsToLookUpArr)
 
 })
   

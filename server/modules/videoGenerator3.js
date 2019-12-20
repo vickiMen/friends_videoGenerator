@@ -39,43 +39,53 @@ var path = require("path");
 var execSync = require('child_process').execSync;
 var mongoose = require('mongoose');
 var searchedWord = require('../models/SearchedWord');
-var downloadFolder = "./video_outputs";
-var videoCutsFolder = "./video_cuts";
+var downloadFolder = "/Users/vickimenashe/Documents/Elevation/frienerator/server/modules/video_outputs";
+var videoCutsFolder = "/Users/vickimenashe/Documents/Elevation/frienerator/server/modules/video_cuts";
+var videoFinalFolder = "/Users/vickimenashe/Documents/Elevation/frienerator/server/modules/video_final";
 var counter = 0;
-var dbSearchPromises = [];
+var dbSearchInternalPromises = [];
 var videoOutputs = [];
-var pass = 'T23Cd93@g62EmrQ';
-mongoose.connect("mongodb://vicki:" + encodeURIComponent(pass) + "@ds127506.mlab.com:27506/heroku_drzf9z0f", { useNewUrlParser: true }, function (err) {
-    if (err) {
-        console.log('Some problem with the connection ' + err);
-    }
-    else {
-        console.log('The Mongoose connection is ready');
-    }
-});
 var selectRandomEpisode = function (array) {
     return (Math.floor(Math.random() * array.length));
 };
+var grabMp4Ext = function (file) {
+    var extName = path.extname(file);
+    return extName === '.mp4';
+};
 var generateVideo = function (wordsToLookUpArr) {
     return __awaiter(this, void 0, void 0, function () {
-        var matchedEpisodes, masterMatchedEpisodesData;
+        var matchedEpisodes, masterMatchedEpisodesData, finalCommands, intermediateCommands, cutVideoFiles;
+        var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    wordsToLookUpArr.forEach(function (word) {
-                        dbSearchPromises.push(searchedWord.findOne({
-                            word: word
-                        }, {
-                            _id: 0,
-                            matchedEpisodes: 1
-                        }));
-                    });
-                    return [4 /*yield*/, Promise.all(dbSearchPromises)];
+                    wordsToLookUpArr.forEach(function (word) { return __awaiter(_this, void 0, void 0, function () {
+                        var _a, _b;
+                        return __generator(this, function (_c) {
+                            switch (_c.label) {
+                                case 0:
+                                    _b = (_a = dbSearchInternalPromises).push;
+                                    return [4 /*yield*/, searchedWord.findOne({
+                                            word: word
+                                        }, {
+                                            _id: 0,
+                                            matchedEpisodes: 1
+                                        })];
+                                case 1:
+                                    _b.apply(_a, [_c.sent()]);
+                                    return [2 /*return*/];
+                            }
+                        });
+                    }); });
+                    console.log(dbSearchInternalPromises);
+                    return [4 /*yield*/, Promise.all(dbSearchInternalPromises)];
                 case 1:
                     matchedEpisodes = _a.sent();
+                    console.log('matchedEpisodesd: ', matchedEpisodes);
                     masterMatchedEpisodesData = [];
                     masterMatchedEpisodesData = matchedEpisodes.map(function (me) { return me.matchedEpisodes.flat(); });
-                    console.log(masterMatchedEpisodesData);
+                    console.log('matchedEpisodes: ', matchedEpisodes);
+                    console.log('here:', masterMatchedEpisodesData);
                     masterMatchedEpisodesData.forEach(function (ed, i) {
                         var chosenEpisode = ed[selectRandomEpisode(ed)];
                         execSync("youtube-dl -g \"https://www.youtube.com/watch?v=" + chosenEpisode.videoId + "\" -f best > " + chosenEpisode.videoId + ".txt;", { stdio: 'inherit', cwd: downloadFolder });
@@ -85,10 +95,19 @@ var generateVideo = function (wordsToLookUpArr) {
                         });
                         execSync("ffmpeg -ss \"" + chosenEpisode.timeStamp.start + "\" -i \"" + chosenEpisode.output + "\" -t \"" + chosenEpisode.timeStamp.duration + "\" video_" + i + ".mp4", { stdio: 'inherit', cwd: videoCutsFolder });
                     });
+                    finalCommands = [];
+                    intermediateCommands = [];
+                    cutVideoFiles = fs.readdirSync(videoCutsFolder);
+                    cutVideoFiles.filter(function (cv) { return grabMp4Ext(cv); }).forEach(function (video, i) {
+                        // videoNames.push(video.split('.mp4')[0])
+                        finalCommands.push("ffmpeg -i " + video + " -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate_" + i + ".ts;");
+                        intermediateCommands.push("intermediate_" + i + ".ts|");
+                    });
+                    intermediateCommands[intermediateCommands.length - 1] = intermediateCommands[intermediateCommands.length - 1].slice(0, -1);
+                    execSync(finalCommands.join('') + " ffmpeg -i \"concat:" + intermediateCommands.join('') + "\" -c copy -bsf:a aac_adtstoasc output.mp4", { stdio: 'inherit', cwd: videoCutsFolder });
                     return [2 /*return*/];
             }
         });
     });
 };
-generateVideo(['Ross', 'Vegas']);
-// module.exports = final
+module.exports = generateVideo;
