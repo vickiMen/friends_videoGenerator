@@ -52,9 +52,12 @@ const parseSecToStr = function(timeFloat: Number) {
     return pad(hours, 2) + ':' + pad(minutes, 2) + ':' + pad(seconds, 2) + '.' + pad(milliseconds, 3)
 }
 
-const retrieveTimeStamppData = async function(youtubeVideoID: string){
-
+const retrieveTimeStamppData = async function(masterWordsData){
+    
+    let youtubeVideoIDs = []
     // fs.unlinkSync(scriptsFolder)
+    masterWordsData.some( mw => mw.videoIds === 'notRelevant' )
+    youtubeVideoIDs = masterWordsData.map( mw => {return} )
 
     let downloadCommand = `youtube-dl --skip-download -o '%(id)s.%(ext)s' --write-auto-sub 'https://www.youtube.com/watch?v=`
 
@@ -106,6 +109,8 @@ const retrieveTimeStamppData = async function(youtubeVideoID: string){
             }
         }
     }
+
+
 
     timeData.forEach( (td,i) => {
         dbUpdatePromises.push(

@@ -17,16 +17,16 @@ interface wordData {
   season: String,
   episode: String,
   videoIds?: Array<string>
+  matchedEpisodes?: Array<object>
 }
 
-let wordsLookupPromises: Array<object> = []
-let    dbSearchPromises: Array<object> = []
-let    dbUpdatePromises: Array<object> = []
-let        apiPromisess: Array<object> = []
-let   masterWordsData: Array<wordData> = [] // variable that holds the data from E2E
-
-
 router.get("/getVideo/:sentence", async (req, res) => {
+  
+  let wordsLookupPromises: Array<object> = []
+  let    dbSearchPromises: Array<object> = []
+  let    dbUpdatePromises: Array<object> = []
+  let        apiPromisess: Array<object> = []
+  let   masterWordsData: Array<wordData> = [] // variable that holds the data from E2E
   
   const sentenceToBuild: String = req.params.sentence
   const wordsToLookup: Array<string> = sentenceToBuild.split(" ")
@@ -56,8 +56,9 @@ router.get("/getVideo/:sentence", async (req, res) => {
     const isEmpty = masterWordsData.some( object => object.videoIds.length == 0)
     if (isEmpty) { 
       const sendToApi: Array<wordData> = masterWordsData.filter( object => object.videoIds.length == 0)
-      sendToApi.forEach( object => retrieveIdsFromAPI(object))
+      sendToApi.forEach( async object => await retrieveIdsFromAPI(object))
     }
+    getTranscript()
   }
   
   wordsToLookup.forEach( word => {
@@ -82,6 +83,7 @@ router.get("/getVideo/:sentence", async (req, res) => {
     if (word == null) {
       await findEpisode(wordsToLookup[i],i)
       isMasterReadyVideoId()
+
     }
     else {  
       masterWordsData[i] = await word
@@ -131,7 +133,7 @@ router.get("/getVideo/:sentence", async (req, res) => {
 
    //start from here!
 
-    await getTranscript(wordDataObj.videoIds[0])
+    // await getTranscript(wordDataObj.videoIds[0])
   
     
     // isMasterReadyWordTranscript()

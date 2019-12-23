@@ -47,16 +47,17 @@ var apiKey = "AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI";
 var rp = require("request-promise");
 var getTranscript = require('../modules/transcript');
 var generateVideo = require('../modules/videoGenerator3');
-var wordsLookupPromises = [];
-var dbSearchPromises = [];
-var dbUpdatePromises = [];
-var apiPromisess = [];
-var masterWordsData = []; // variable that holds the data from E2E
 router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var sentenceToBuild, wordsToLookup, findEpisode, isMasterReadyVideoId, foundSearchedWords, retrieveIdsFromAPI;
+    var wordsLookupPromises, dbSearchPromises, dbUpdatePromises, apiPromisess, masterWordsData, sentenceToBuild, wordsToLookup, findEpisode, isMasterReadyVideoId, foundSearchedWords, retrieveIdsFromAPI;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
+                wordsLookupPromises = [];
+                dbSearchPromises = [];
+                dbUpdatePromises = [];
+                apiPromisess = [];
+                masterWordsData = [] // variable that holds the data from E2E
+                ;
                 sentenceToBuild = req.params.sentence;
                 wordsToLookup = sentenceToBuild.split(" ");
                 findEpisode = function (word, i) {
@@ -85,11 +86,18 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                     });
                 };
                 isMasterReadyVideoId = function () {
+                    var _this = this;
                     var isEmpty = masterWordsData.some(function (object) { return object.videoIds.length == 0; });
                     if (isEmpty) {
                         var sendToApi = masterWordsData.filter(function (object) { return object.videoIds.length == 0; });
-                        sendToApi.forEach(function (object) { return retrieveIdsFromAPI(object); });
+                        sendToApi.forEach(function (object) { return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0: return [4 /*yield*/, retrieveIdsFromAPI(object)];
+                                case 1: return [2 /*return*/, _a.sent()];
+                            }
+                        }); }); });
                     }
+                    getTranscript();
                 };
                 wordsToLookup.forEach(function (word) {
                     wordsLookupPromises.push(SearchedWord.findOne({
@@ -165,15 +173,12 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                     });
                 };
                 //start from here!
-                return [4 /*yield*/, getTranscript(wordDataObj.videoIds[0])
-                    // isMasterReadyWordTranscript()
-                ];
-            case 2:
-                //start from here!
-                _a.sent();
+                // await getTranscript(wordDataObj.videoIds[0])
                 // isMasterReadyWordTranscript()
                 return [4 /*yield*/, generateVideo(wordsToLookup)];
-            case 3:
+            case 2:
+                //start from here!
+                // await getTranscript(wordDataObj.videoIds[0])
                 // isMasterReadyWordTranscript()
                 _a.sent();
                 return [2 /*return*/];
