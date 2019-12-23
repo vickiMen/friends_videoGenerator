@@ -47,179 +47,137 @@ var apiKey = "AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI";
 var rp = require("request-promise");
 var getTranscript = require('../modules/transcript');
 var generateVideo = require('../modules/videoGenerator3');
+var wordsLookupPromises = [];
+var dbSearchPromises = [];
+var dbUpdatePromises = [];
+var apiPromisess = [];
+var masterWordsData = []; // variable that holds the data from E2E
 router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var sentenceToBuild, wordsToLookUpArr, dbSearchPromises, dbUpdatePromises, masterVideoIds, apiPromisess, foundwords, masterWordsData, resolvedApiPromises;
+    var sentenceToBuild, wordsToLookup, findEpisode, isMasterReadyVideoId, foundSearchedWords, retrieveIdsFromAPI;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 sentenceToBuild = req.params.sentence;
-                wordsToLookUpArr = sentenceToBuild.split(" ");
-                dbSearchPromises = [];
-                dbUpdatePromises = [];
-                masterVideoIds = [];
-                apiPromisess = [];
-                // 1. Search for words in the episodes
-                wordsToLookUpArr.forEach(function (word) {
-                    console.log(wordsToLookUpArr);
-                    dbSearchPromises.push(Episode.aggregate([
-                        {
-                            $match: {
-                                script: {
-                                    $regex: " " + word + " ", $options: 'i'
-                                }
+                wordsToLookup = sentenceToBuild.split(" ");
+                findEpisode = function (word, i) {
+                    return __awaiter(this, void 0, void 0, function () {
+                        var getEpisode;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0:
+                                    getEpisode = Episode.aggregate([
+                                        { $match: { $text: { $search: word }
+                                            }
+                                        },
+                                        {
+                                            $sample: { size: 1 }
+                                        },
+                                        {
+                                            $project: { _id: 0, season: 1, episode: 1, videoIds: 1 }
+                                        }
+                                    ]);
+                                    return [4 /*yield*/, getEpisode.then(function (episode) { masterWordsData[i] = episode.flat()[0]; })];
+                                case 1:
+                                    _a.sent();
+                                    return [2 /*return*/];
                             }
-                        },
-                        {
-                            $sample: { size: 1 }
-                        },
-                        {
-                            $project: { _id: 0, season: 1, episode: 1 }
-                        }
-                    ]));
-                });
-                return [4 /*yield*/, Promise.all(dbSearchPromises)
-                    // const newFoundwords = foundwords.flat()
-                    // console.log('foundWOrds: ', foundwords.flat())
-                ];
-            case 1:
-                foundwords = _a.sent();
-                masterWordsData = foundwords.flat();
-                console.log(masterWordsData);
-                foundwords.flat().forEach(function (word) {
-                    // console.log('word: ', word)
-                    apiPromisess.push(rp("https://www.googleapis.com/youtube/v3/search?part=snippet&q=friends%20s" + word.season + "e" + word.episode + "&type=video&key=" + apiKey + "&limit=1"));
-                });
-                return [4 /*yield*/, Promise.all(apiPromisess)];
-            case 2:
-                resolvedApiPromises = _a.sent();
-                resolvedApiPromises.forEach(function (responseObj, i) {
-                    var newArr = [];
-                    var items = JSON.parse(responseObj).items;
-                    items.forEach(function (item) { return newArr.push(item.id.videoId); });
-                    masterWordsData[i].videoIds = newArr;
-                });
-                masterWordsData.forEach(function (word) {
-                    return dbUpdatePromises.push(Episode.update({
-                        season: word.season,
-                        episode: word.episode
+                        });
+                    });
+                };
+                isMasterReadyVideoId = function () {
+                    var isEmpty = masterWordsData.some(function (object) { return object.videoIds.length == 0; });
+                    if (isEmpty) {
+                        var sendToApi = masterWordsData.filter(function (object) { return object.videoIds.length == 0; });
+                        sendToApi.forEach(function (object) { return retrieveIdsFromAPI(object); });
+                    }
+                };
+                wordsToLookup.forEach(function (word) {
+                    wordsLookupPromises.push(SearchedWord.findOne({
+                        word: new RegExp(word, 'i'),
+                        isReady: true
                     }, {
-                        $set: {
-                            videoIds: word.videoIds
-                        }
+                        _id: 0,
+                        matchedEpisodes: 1
                     }));
                 });
-                return [4 /*yield*/, Promise.all(dbUpdatePromises)
-                    // videoIdsArr = videoIdsArr.map(ids => {return ids[0]})
-                    // 3. Get transcript for each episode (Dor's + Vicki's part)
+                return [4 /*yield*/, Promise.all(wordsLookupPromises)];
+            case 1:
+                foundSearchedWords = _a.sent();
+                foundSearchedWords.forEach(function (word, i) { return __awaiter(void 0, void 0, void 0, function () {
+                    var _a, _b;
+                    return __generator(this, function (_c) {
+                        switch (_c.label) {
+                            case 0:
+                                if (!(word == null)) return [3 /*break*/, 2];
+                                return [4 /*yield*/, findEpisode(wordsToLookup[i], i)];
+                            case 1:
+                                _c.sent();
+                                isMasterReadyVideoId();
+                                return [3 /*break*/, 4];
+                            case 2:
+                                _a = masterWordsData;
+                                _b = i;
+                                return [4 /*yield*/, word];
+                            case 3:
+                                _a[_b] = _c.sent();
+                                masterWordsData[i].word = wordsToLookup[i];
+                                masterWordsData[i].videoIds = ['notRelevant'];
+                                _c.label = 4;
+                            case 4:
+                                console.log('rachel+well:', masterWordsData);
+                                return [2 /*return*/];
+                        }
+                    });
+                }); });
+                retrieveIdsFromAPI = function (wordDataObj) {
+                    return __awaiter(this, void 0, void 0, function () {
+                        var resolvedApiPromises;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0:
+                                    apiPromisess.push(rp("https://www.googleapis.com/youtube/v3/search?part=snippet&q=friends%20s" + wordDataObj.season + "e" + wordDataObj.episode + "&type=video&key=" + apiKey + "&limit=1"));
+                                    return [4 /*yield*/, Promise.all(apiPromisess)];
+                                case 1:
+                                    resolvedApiPromises = _a.sent();
+                                    resolvedApiPromises.forEach(function (responseObj) {
+                                        var videoIds = [];
+                                        var items = JSON.parse(responseObj).items;
+                                        items.forEach(function (item) { return videoIds.push(item.id.videoId); });
+                                        wordDataObj.videoIds = videoIds;
+                                        console.log(masterWordsData);
+                                        masterWordsData.forEach(function (word) {
+                                            return dbUpdatePromises.push(Episode.updateOne({
+                                                season: word.season,
+                                                episode: word.episode
+                                            }, {
+                                                $set: {
+                                                    videoIds: word.videoIds
+                                                }
+                                            }));
+                                        });
+                                    });
+                                    return [4 /*yield*/, Promise.all(dbUpdatePromises)];
+                                case 2:
+                                    _a.sent();
+                                    return [2 /*return*/];
+                            }
+                        });
+                    });
+                };
+                //start from here!
+                return [4 /*yield*/, getTranscript(wordDataObj.videoIds[0])
+                    // isMasterReadyWordTranscript()
                 ];
+            case 2:
+                //start from here!
+                _a.sent();
+                // isMasterReadyWordTranscript()
+                return [4 /*yield*/, generateVideo(wordsToLookup)];
             case 3:
+                // isMasterReadyWordTranscript()
                 _a.sent();
-                // videoIdsArr = videoIdsArr.map(ids => {return ids[0]})
-                // 3. Get transcript for each episode (Dor's + Vicki's part)
-                return [4 /*yield*/, masterWordsData.forEach(function (wordData) {
-                        console.log('what am i sending?', wordData.videoIds[0]);
-                        getTranscript(wordData.videoIds[0]);
-                    })
-                    //   // 5. Get video part for each word (Efrat's part)
-                    //   const newArr = []
-                    //   for (let i=0; i<5; i++){
-                    //         newArr.push(timeDataArr[0][i])
-                    //     }
-                ];
-            case 4:
-                // videoIdsArr = videoIdsArr.map(ids => {return ids[0]})
-                // 3. Get transcript for each episode (Dor's + Vicki's part)
-                _a.sent();
-                //   // 5. Get video part for each word (Efrat's part)
-                //   const newArr = []
-                //   for (let i=0; i<5; i++){
-                //         newArr.push(timeDataArr[0][i])
-                //     }
-                generateVideo(wordsToLookUpArr);
                 return [2 /*return*/];
         }
     });
 }); });
-// console.log(timeDataArr[0][0].matchedEpisodes)
-// router.get("/testTranscript", (req, res) => {
-//   const videoId = ["4_OvFVR5pNs", "1JVrynCAapg"];
-//   getTranscript(videoId);
-//   res.end();
-// });
-// const getTranscript = videoIds => {
-//   let commands = "";
-//   const scriptsFolder = "../youtube_transcripts";
-//   videoIds.forEach(id => {
-//     commands = `${commands} youtube-dl --skip-download -o '%(id)s.%(ext)s' --write-auto-sub 'https://www.youtube.com/watch?v=${id}'`;
-//     // console.log(commands)
-//   });
-//   execSync(`${commands}`, { stdio: "inherit", cwd: scriptsFolder });
-// };
 module.exports = router;
-// const express = require('express')
-// const router = express.Router()
-// const request = require('request')
-// const transcript = require('../modules/transcript')
-// const Episode = require('../models/Episode')
-// const SearchedWord = require('../models/SearchedWord')
-// // const fs = require('fs');
-// const execSync = require('child_process').execSync;
-// const exec = require('child_process').exec;
-// const apiKey = 'AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI'
-// const generateVideo = require('../modules/videoGenerator3')
-// const bodyParser = require('body-parser')
-// const checkDuplicatedWords = async function(searchedWord){
-//     const isFound = await SearchedWord.find({word: SearchedWord.word})
-//     if (isFound) {
-//         isFound.matchedEpisodes.push(searchedWord.matchedEpisodes[0])
-//     }
-//     else {
-//         const newSearchedWord = new searchedWord(searchedWord)
-//         await newSearchedWord.save()
-//     }
-// }
-// const selectRandomEpisode = function(number){
-//     const x = Math.floor(Math.random() * number)
-// }
-// const getWords = function(){
-//     const words = []
-//     router.get('/getVideo/:sentence', function(req,res){
-//         const sentence = req.params.sentence
-//         words = sentence.split(' ')
-//         res.end()
-//     })
-//     return words
-// }
-// getDbObjects = function(word){
-//     Episode.aggregate([
-//         { $match: { 
-//             script: new RegExp(`${word}`, 'i')
-//             }
-//         },
-//         { $sample: { 
-//             size: 1 
-//            } 
-//         }
-//     ])
-// }
-// getIdsFromAPI = function(season,episode){
-//     request(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=friends%20s${season}e${episode}&type=video&key=${apiKey}`, function(err, response){
-//             const videoIds = []
-//             const output = JSON.parse(response.body)
-//             output.items.forEach( o => videoIds.push(o.id.videoId))
-//         })
-//         return videoIds
-// }
-// getTranscript = function(id){
-//         const searchedWord = transcript(id)
-//         checkDuplicatedWords(searchedWord) //save to DB
-// }
-// getVideoOutput = function(arrayOfObjects){
-//     generateVideo(arrayOfObjects)
-// }
-// getWords()
-//     .then( words.forEach( word => getDbObjects(word)))
-//     .then( mongoObjs.forEach( mongoObj => getIdsFromAPI(mongoObj.season, mongoObj.episode)))
-//     .then( ids.forEach( id => getTranscript(id)))
-//     .then( timeData => getVideoOutput(timeData))
-// module.exports = router

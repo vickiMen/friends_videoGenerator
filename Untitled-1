@@ -1,0 +1,18 @@
+FOR %i IN (*.csv) DO mongoimport -d Friends -c episodes --file %i
+
+
+ls -1 *.csv | while read csvfile; do mongoimport --db Friends --collection episodes --file $csvfile --type csv --fieldFile=fields.txt ; done
+
+
+mongoimport --db Friends --collection episodes --type csv --file data.csv 
+
+
+ ls -1 *.csv | while read csvfile; do mongoimport -d Friends -c episodes -file $csvfile --csvArray -type csv; done
+
+ ls -1 *.csv | while read csvfile; do mongoimport -d Friends -c episodes --file $csvfile --type json; done  
+
+
+ mongo ds127506.mlab.com:27506/heroku_drzf9z0f -u <dbuser> -p <dbpassword>
+
+ T23Cd93@g62EmrQ
+ 

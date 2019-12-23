@@ -27,30 +27,30 @@ fs.readdirSync(scriptsFolder).forEach(function (file) {
         seasonNum = parseInt(fileName[0]);
         episodeNum = parseInt(fileName.slice(1));
     }
-    var script = (fs.readFileSync(scriptsFolder + "/" + file, 'utf8'));
-    var episodeName = script.match(/(The One .*)|(The Last One)/); //episode name
-    script = script.replace(/\(.*\)/gm, '') //director's comments
-        .replace(/(([A-Z][a-z]+\.)\s([A-Z][a-z]+\:))/gm, '') //character name with 2words
-        .replace(/([A-Z][a-z]+)\:/gm, '') //character name
-        .replace(/\[.*\]/gm, '') //scene desc.
-        .replace(/(Written by\: .+)/gm, '') //written by
-        .replace(/(Transcribed by\: .+)/gm, '') //transcribed by
-        .replace(/((Ending|Closing) Credits)/gm, '') //ending credits
-        .replace(/(End)/gm, '') //ending credits
-        .replace(/Commercial Break/gm, '') // commercial break
-        .replace(/Opening Credits/gm, '') //opening credits
-        .replace(/\n/gm, '') //new line
-        .replace(/\r/gm, ''); //carriage-return
-    var content = {
-        season: seasonNum,
-        episode: episodeNum,
-        name: episodeName,
-        script: script,
-        videoIds: []
-    };
-    fs.writeFileSync("/Users/vickimenashe/Documents/Elevation/frienerator/scripts3/scriptsNew/" + file, JSON.stringify(content));
+    //     let script = (fs.readFileSync(`${scriptsFolder}/${file}`,'utf8'))
+    //     let episodeName = script.match(/(The One .*)|(The Last One)/) //episode name
+    //     script = script.replace(/\(.*\)/gm, '') //director's comments
+    //                    .replace(/(([A-Z][a-z]+\.)\s([A-Z][a-z]+\:))/gm, '') //character name with 2words
+    //                    .replace(/([A-Z][a-z]+)\:/gm, '') //character name
+    //                    .replace(/\[.*\]/gm, '') //scene desc.
+    //                    .replace(/(Written by\: .+)/gm, '') //written by
+    //                    .replace(/(Transcribed by\: .+)/gm, '') //transcribed by
+    //                    .replace(/((Ending|Closing) Credits)/gm, '')  //ending credits
+    //                    .replace(/(End)/gm, '')  //ending credits
+    //                    .replace(/Commercial Break/gm, '')  // commercial break
+    //                    .replace(/Opening Credits/gm, '') //opening credits
+    //                    .replace(/\n/gm, '') //new line
+    //                    .replace(/\r/gm, '') //carriage-return
+    //     const content: episodeDbObject = {
+    //         season: seasonNum,
+    //         episode: episodeNum,
+    //         name: episodeName,
+    //         script: script,
+    //         videoIds: []
+    //     }
+    //     fs.writeFileSync(`/Users/vickimenashe/Documents/Elevation/frienerator/scripts3/scriptsNew/${file}`, JSON.stringify(content))
 });
-mongoose.connect('mongodb://localhost/Friends', { useNewUrlParser: true });
+// mongoose.connect('mongodb://localhost/Friends', {useNewUrlParser: true})
 var pass = 'T23Cd93@g62EmrQ';
 mongoose.connect("mongodb://vicki:" + encodeURIComponent(pass) + "@ds127506.mlab.com:27506/heroku_drzf9z0f", { useNewUrlParser: true }, function (err) {
     if (err) {
@@ -61,7 +61,7 @@ mongoose.connect("mongodb://vicki:" + encodeURIComponent(pass) + "@ds127506.mlab
     }
 });
 var searchedWord = require('../models/SearchedWord');
-var Episode = require('../models/Episode');
+var episode = require('../models/Episode');
 // const blabla = new searchedWord({
 //     word: 'blabla',
 //     matchedEpisodes: [
@@ -75,11 +75,18 @@ var Episode = require('../models/Episode');
 //     ],
 //     isReady: false
 // })
-var blabla = new Episode({
-    episode: 1,
-    season: 1,
-    name: 'the one where',
-    script: 'dfdfdf',
-    videoIds: []
-});
-blabla.save();
+// const blabla = new episode({
+//     episode: 1,
+//     season: 1,
+//     name: 'the one where',
+//     script: 'dfdfdf',
+//     videoIds: []
+// })
+//     blabla.save( function(err, data){
+//         if(err){
+//             console.log(err)
+//         }
+//         else {
+//             console.log(data)
+//         }
+//     })

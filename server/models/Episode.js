@@ -3,10 +3,11 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const EpisodeSchema = new Schema({
-    season: String,
-    episode: String,
+    season: Number,
+    episode: Number,
     name: String,
-    script: String
+    script: String,
+    videoIds: Array
 })
 
 const Episode = mongoose.model('episode', EpisodeSchema)

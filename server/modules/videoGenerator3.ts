@@ -39,7 +39,7 @@ const generateVideo = async function(wordsToLookUpArr: Array<string>){
     wordsToLookUpArr.forEach( async word => {
         dbSearchInternalPromises.push(
             await searchedWord.findOne({
-                word: word
+                word: /word/i
             },
             {
                 _id: 0,
@@ -48,14 +48,14 @@ const generateVideo = async function(wordsToLookUpArr: Array<string>){
         )
     })
 
-    console.log(dbSearchInternalPromises)
+    console.log('promises:', dbSearchInternalPromises)
 
     const matchedEpisodes: any = await Promise.all(dbSearchInternalPromises)
-    console.log('matchedEpisodesd: ', matchedEpisodes)
+    console.log('matchedEpisodes: ', matchedEpisodes)
     let masterMatchedEpisodesData: Array<Array<videoData>> = []
     masterMatchedEpisodesData = matchedEpisodes.map( me => me.matchedEpisodes.flat())
-    console.log('matchedEpisodes: ', matchedEpisodes)
-    console.log('here:', masterMatchedEpisodesData)
+    // console.log('matchedEpisodes: ', matchedEpisodes)
+    // console.log('here:', masterMatchedEpisodesData)
 
     masterMatchedEpisodesData.forEach( (ed, i) => {
         let chosenEpisode = ed[selectRandomEpisode(ed)]
@@ -74,7 +74,6 @@ const generateVideo = async function(wordsToLookUpArr: Array<string>){
     
       
     let finalCommands: Array<string> = []
-    // let videoNames: Array<string> = []
     let intermediateCommands: Array<string> = []
 
     const cutVideoFiles: Array<string> = fs.readdirSync(videoCutsFolder)
