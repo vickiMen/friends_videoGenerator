@@ -52,21 +52,28 @@ const parseSecToStr = function(timeFloat: Number) {
     return pad(hours, 2) + ':' + pad(minutes, 2) + ':' + pad(seconds, 2) + '.' + pad(milliseconds, 3)
 }
 
-const retrieveTimeStamppData = async function(masterWordsData){
-    
-    let youtubeVideoIDs = []
-    // fs.unlinkSync(scriptsFolder)
-    masterWordsData.some( mw => mw.videoIds === 'notRelevant' )
-    youtubeVideoIDs = masterWordsData.map( mw => {return} )
+const retrieveTimeStamppData = async function(masterDataArray: Array<wordData>){
 
+    // fs.unlinkSync(scriptsFolder)
+    const relevantObjects: Array<wordData> = masterDataArray.filter( mw => !mw.matchedEpisodes  )
+    
     let downloadCommand = `youtube-dl --skip-download -o '%(id)s.%(ext)s' --write-auto-sub 'https://www.youtube.com/watch?v=`
 
-    downloadCommand += youtubeVideoID + '\''
+
+    let youtubeVideoIDs: Array<Array<String>> = relevantObjects.map( ro => ro.videoIds )
+    let downloadCommands: Array<String> = youtubeVideoIDs.map( youtubeIdArr => {return downloadCommand + youtubeIdArr[0] + '\''}) //command that downloads transcript for each word given in the masterArray
     
-    execSync(`${downloadCommand}`, {stdio: 'inherit', cwd: scriptsFolder})
+    console.log(youtubeVideoIDs)
+    console.log(downloadCommands)
     
-    let script = (fs.readFileSync(`${scriptsFolder}/${youtubeVideoID}.en.vtt`,'utf8'))
-    script = script.replace(/(\<c\> )/gm, '')
+    downloadCommands.forEach( downloadCommand => execSync(`${downloadCommand}`, {stdio: 'inherit', cwd: scriptsFolder}))
+    
+    let files = youtubeVideoIDs.map( youtubeId => fs.readFileSync(`${scriptsFolder}/${youtubeId[0]}.en.vtt`,'utf8'))
+
+    console.log('readingFiles', files)
+    let scripts = []
+    scripts = files.map( file => {
+        let script = file.replace(/(\<c\> )/gm, '')
                    .replace(/(\<\/c\>)/gm, '')
                    .replace(/(WEBVTT\nKind: captions\nLanguage: en)/gm, '')
                    .replace(/(-->.*align.*)\n.*/gm, '')
@@ -77,91 +84,98 @@ const retrieveTimeStamppData = async function(masterWordsData){
 
     words = script.match(/[a-zA-Z']+/gm)
     times = script.match(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/gm)
-    
-    words.forEach( (w,i) => timeData.push(
-        {
-            word: w,
-            matchedEpisodes: [
-                {
-                    videoId: youtubeVideoID,
-                    timeStamp: {
-                        start: times[i],
-                    }
-                }
-            ],
-            isReady: false
+        return {
+            words,
+            times
         }
-    ))
-
-    times.forEach( (t,i) => parsedTimes[i] = parseToSeconds(t))
-    parsedTimes.forEach( (pt,i) => durations.push(durationCalc(pt, parsedTimes[i+1])))
+})
     
-    const strDurations = durations.map( d => parseSecToStr(d))
-    strDurations[strDurations.length-1] = '00:00:03:123'
-    timeData.forEach( (td,i) => td.matchedEpisodes[0].timeStamp.duration = strDurations[i])
+    console.log('afterRegex', scripts)
+    // words.forEach( (w,i) => timeData.push(
+    //     {
+    //         word: w,
+    //         matchedEpisodes: [
+    //             {
+    //                 videoId: youtubeVideoID,
+    //                 timeStamp: {
+    //                     start: times[i],
+    //                 }
+    //             }
+    //         ],
+    //         isReady: false
+    //     }
+    // ))
+
+    // times.forEach( (t,i) => parsedTimes[i] = parseToSeconds(t))
+    // parsedTimes.forEach( (pt,i) => durations.push(durationCalc(pt, parsedTimes[i+1])))
     
-    
-    for (let i=0; i<timeData.length; i++){
-        for (let j=i+1; j<timeData.length; j++){
-            if (timeData[i].word == timeData[j].word){
-                timeData[i].matchedEpisodes.push(timeData[j].matchedEpisodes[0])
-                timeData.splice(j,1)
-            }
-        }
-    }
-
-
-
-    timeData.forEach( (td,i) => {
-        dbUpdatePromises.push(
-            searchedWord.updateOne(
-            {
-                word: td.word
-            },
-            {
-                $addToSet: {
-                    matchedEpisodes: {
-                        $each: td.matchedEpisodes
-                    }
-                }
-            })
-        )
-        timeData.splice(i,1)
-    })
-
-
-    timeData.forEach(td => {
-        const newDbObject = new searchedWord({
-            word: td.word,
-            matchedEpisodes: td.matchedEpisodes,
-            isReady: td.isReady
-        })
-        dbUpdatePromises.push( newDbObject.save() )
-    })
-
+    // const strDurations = durations.map( d => parseSecToStr(d))
+    // strDurations[strDurations.length-1] = '00:00:03:123'
+    // timeData.forEach( (td,i) => td.matchedEpisodes[0].timeStamp.duration = strDurations[i])
     
     
-    dbUpdatePromises.push(searchedWord.updateMany(
-        {
-            $where: "this.matchedEpisodes.length >= 10",
-            isReady: false  
-        },
-        {
-            $set: {
-                isReady: true
-            }
-        })
-    )
+    // for (let i=0; i<timeData.length; i++){
+    //     for (let j=i+1; j<timeData.length; j++){
+    //         if (timeData[i].word == timeData[j].word){
+    //             timeData[i].matchedEpisodes.push(timeData[j].matchedEpisodes[0])
+    //             timeData.splice(j,1)
+    //         }
+    //     }
+    // }
+
+
+
+    // timeData.forEach( (td,i) => {
+    //     dbUpdatePromises.push(
+    //         searchedWord.updateOne(
+    //         {
+    //             word: td.word
+    //         },
+    //         {
+    //             $addToSet: {
+    //                 matchedEpisodes: {
+    //                     $each: td.matchedEpisodes
+    //                 }
+    //             }
+    //         })
+    //     )
+    //     timeData.splice(i,1)
+    // })
+
+
+    // timeData.forEach(td => {
+    //     const newDbObject = new searchedWord({
+    //         word: td.word,
+    //         matchedEpisodes: td.matchedEpisodes,
+    //         isReady: td.isReady
+    //     })
+    //     dbUpdatePromises.push( newDbObject.save() )
+    // })
+
+    
+    
+    // dbUpdatePromises.push(searchedWord.updateMany(
+    //     {
+    //         $where: "this.matchedEpisodes.length >= 10",
+    //         isReady: false  
+    //     },
+    //     {
+    //         $set: {
+    //             isReady: true
+    //         }
+    //     })
+    // )
         
-    await Promise.all(dbUpdatePromises)
+    // await Promise.all(dbUpdatePromises)
 
 
-    // timeData.forEach( td => console.log(td.matchedEpisodes[0].timeStamp.duration))
+    // // timeData.forEach( td => console.log(td.matchedEpisodes[0].timeStamp.duration))
       
-    //TODO: write code that saves timeData into the 'episodes' collection, using the videoID property
-    //TODO: delete file after done
-    // console.log(timeData)
-    return timeData
+    // //TODO: write code that saves timeData into the 'episodes' collection, using the videoID property
+    // //TODO: delete file after done
+    // // console.log(timeData)
+    
+    // return timeData
 }
 
 

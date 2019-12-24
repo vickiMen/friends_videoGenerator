@@ -29,7 +29,7 @@ router.get("/getVideo/:sentence", async (req, res) => {
   let   masterWordsData: Array<wordData> = [] // variable that holds the data from E2E
   
   const sentenceToBuild: String = req.params.sentence
-  const wordsToLookup: Array<string> = sentenceToBuild.split(" ")
+  const wordsToLookup: Array<string> = sentenceToBuild.split(' ')
   
   const findEpisode = async function(word,i){
       const getEpisode = Episode.aggregate([
@@ -49,16 +49,15 @@ router.get("/getVideo/:sentence", async (req, res) => {
     await getEpisode.then( episode => {masterWordsData[i] = episode.flat()[0]} )
   }
 
-
-
   //check if there are videoIds already
-  const isMasterReadyVideoId = function(){
+  const isMasterReadyVideoId = async function(){
     const isEmpty = masterWordsData.some( object => object.videoIds.length == 0)
     if (isEmpty) { 
       const sendToApi: Array<wordData> = masterWordsData.filter( object => object.videoIds.length == 0)
-      sendToApi.forEach( async object => await retrieveIdsFromAPI(object))
+      const apiPromises = sendToApi.map( async object => await retrieveIdsFromAPI(object))
+      await Promise.all(apiPromises)
     }
-    getTranscript()
+    // getTranscript()
   }
   
   wordsToLookup.forEach( word => {
@@ -70,45 +69,57 @@ router.get("/getVideo/:sentence", async (req, res) => {
         },
         {
           _id: 0,
+          word: 1,
           matchedEpisodes: 1
         })
     )
 
   })
 
-  
   const foundSearchedWords: any = await Promise.all(wordsLookupPromises)
-  
-  foundSearchedWords.forEach( async (word,i) => {
-    if (word == null) {
-      await findEpisode(wordsToLookup[i],i)
-      isMasterReadyVideoId()
 
+  const updateRelevantDataToMasterArray = async function(index, foundWordObj){
+    masterWordsData[index] = await foundWordObj
+    masterWordsData[index].videoIds = await ['notRelevant']
+  }
+
+  const mapLoop = async function(){
+    const promises = await foundSearchedWords.map( async (fsw,i) => {
+      if (fsw == null) {
+        const foundEpisode = await findEpisode(wordsToLookup[i],i)
+        const master = await isMasterReadyVideoId()
+        return {foundEpisode, master}
+      }
+      else {
+        const pushPromise = await updateRelevantDataToMasterArray(i, fsw)
+        return pushPromise
+        // TODO: we have a match! go straight to videoGen
+      }
+    })
+
+      await Promise.all(promises)
+      // await console.log(masterWordsData)
+      // await console.log(masterWordsData[1].videoIds)
+      await getTranscript(masterWordsData)
+      // await generateVideo(wordsToLookup)
     }
-    else {  
-      masterWordsData[i] = await word
-      masterWordsData[i].word = wordsToLookup[i]
-      masterWordsData[i].videoIds = ['notRelevant']
-      // TODO: we have a match! go straight to videoGen
-    }
 
-    console.log('rachel+well:', masterWordsData)
-  })
   
-
+  mapLoop()
+  
 
   const retrieveIdsFromAPI = async function (wordDataObj: wordData) {
     
     apiPromisess.push(rp(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=friends%20s${wordDataObj.season}e${wordDataObj.episode}&type=video&key=${apiKey}&limit=1`))
    
     const resolvedApiPromises: any = await Promise.all(apiPromisess)
+    
     resolvedApiPromises.forEach( responseObj => {
       const videoIds = []
       const items = JSON.parse(responseObj).items
       items.forEach( item => videoIds.push(item.id.videoId))
       wordDataObj.videoIds = videoIds
       
-      console.log(masterWordsData)
       
       masterWordsData.forEach( word => 
        dbUpdatePromises.push(
@@ -136,9 +147,8 @@ router.get("/getVideo/:sentence", async (req, res) => {
     // await getTranscript(wordDataObj.videoIds[0])
   
     
-    // isMasterReadyWordTranscript()
 
-    await generateVideo(wordsToLookup)
+    // await generateVideo(wordsToLookup)
   }
 )
   

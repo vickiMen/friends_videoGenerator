@@ -36,10 +36,11 @@ const grabMp4Ext = function(file) {
 
 const generateVideo = async function(wordsToLookUpArr: Array<string>){
 
-    wordsToLookUpArr.forEach( async word => {
+    wordsToLookUpArr.forEach( word => {
+        console.log('word:')
         dbSearchInternalPromises.push(
-            await searchedWord.findOne({
-                word: /word/i
+            searchedWord.findOne({
+                word: new RegExp(word, 'i')
             },
             {
                 _id: 0,

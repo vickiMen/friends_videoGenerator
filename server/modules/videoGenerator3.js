@@ -55,37 +55,27 @@ var grabMp4Ext = function (file) {
 var generateVideo = function (wordsToLookUpArr) {
     return __awaiter(this, void 0, void 0, function () {
         var matchedEpisodes, masterMatchedEpisodesData, finalCommands, intermediateCommands, cutVideoFiles;
-        var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    wordsToLookUpArr.forEach(function (word) { return __awaiter(_this, void 0, void 0, function () {
-                        var _a, _b;
-                        return __generator(this, function (_c) {
-                            switch (_c.label) {
-                                case 0:
-                                    _b = (_a = dbSearchInternalPromises).push;
-                                    return [4 /*yield*/, searchedWord.findOne({
-                                            word: word
-                                        }, {
-                                            _id: 0,
-                                            matchedEpisodes: 1
-                                        })];
-                                case 1:
-                                    _b.apply(_a, [_c.sent()]);
-                                    return [2 /*return*/];
-                            }
-                        });
-                    }); });
-                    console.log(dbSearchInternalPromises);
+                    wordsToLookUpArr.forEach(function (word) {
+                        console.log('word:');
+                        dbSearchInternalPromises.push(searchedWord.findOne({
+                            word: new RegExp(word, 'i')
+                        }, {
+                            _id: 0,
+                            matchedEpisodes: 1
+                        }));
+                    });
+                    console.log('promises:', dbSearchInternalPromises);
                     return [4 /*yield*/, Promise.all(dbSearchInternalPromises)];
                 case 1:
                     matchedEpisodes = _a.sent();
-                    console.log('matchedEpisodesd: ', matchedEpisodes);
+                    console.log('matchedEpisodes: ', matchedEpisodes);
                     masterMatchedEpisodesData = [];
                     masterMatchedEpisodesData = matchedEpisodes.map(function (me) { return me.matchedEpisodes.flat(); });
-                    console.log('matchedEpisodes: ', matchedEpisodes);
-                    console.log('here:', masterMatchedEpisodesData);
+                    // console.log('matchedEpisodes: ', matchedEpisodes)
+                    // console.log('here:', masterMatchedEpisodesData)
                     masterMatchedEpisodesData.forEach(function (ed, i) {
                         var chosenEpisode = ed[selectRandomEpisode(ed)];
                         execSync("youtube-dl -g \"https://www.youtube.com/watch?v=" + chosenEpisode.videoId + "\" -f best > " + chosenEpisode.videoId + ".txt;", { stdio: 'inherit', cwd: downloadFolder });
