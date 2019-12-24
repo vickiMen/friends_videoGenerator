@@ -69,13 +69,12 @@ var retrieveTimeStamppData = function (masterDataArray) {
             youtubeVideoIDs = relevantObjects.map(function (ro) { return ro.videoIds; });
             downloadCommands = youtubeVideoIDs.map(function (youtubeIdArr) { return downloadCommand + youtubeIdArr[0] + '\''; }) //command that downloads transcript for each word given in the masterArray
             ;
-            console.log(youtubeVideoIDs);
-            console.log(downloadCommands);
             downloadCommands.forEach(function (downloadCommand) { return execSync("" + downloadCommand, { stdio: 'inherit', cwd: scriptsFolder }); });
             files = youtubeVideoIDs.map(function (youtubeId) { return fs.readFileSync(scriptsFolder + "/" + youtubeId[0] + ".en.vtt", 'utf8'); });
-            console.log('readingFiles', files);
-            scripts = [];
-            scripts = files.map(function (file) {
+            scripts = [] // storing all of the normalized data for each script
+            ;
+            scripts = files.map(function (file, i) {
+                var youtubeId = youtubeVideoIDs[i][0];
                 var script = file.replace(/(\<c\> )/gm, '')
                     .replace(/(\<\/c\>)/gm, '')
                     .replace(/(WEBVTT\nKind: captions\nLanguage: en)/gm, '')
@@ -86,11 +85,24 @@ var retrieveTimeStamppData = function (masterDataArray) {
                 words = script.match(/[a-zA-Z']+/gm);
                 times = script.match(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/gm);
                 return {
+                    youtubeId: youtubeId,
                     words: words,
                     times: times
                 };
             });
-            console.log('afterRegex', scripts);
+            scripts.forEach(function (script) { return script.words.forEach(function (w, i) { return timeData.push({
+                word: w,
+                matchedEpisodes: [
+                    {
+                        videoId: script.youtubeId,
+                        timeStamp: {
+                            start: script.times[i]
+                        }
+                    }
+                ],
+                isReady: false
+            }); }); });
+            console.log(timeData);
             return [2 /*return*/];
         });
     });

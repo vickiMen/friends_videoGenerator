@@ -7,6 +7,12 @@ const searchedWord = require('../models/SearchedWord')
 
 const dbUpdatePromises: Array<object> = []
 
+interface scriptData {
+    youtubeId: string,
+    words: Array<string>,
+    times: Array<string>
+}
+
 interface timeStampObject {
     start: string,
     duration?: string
@@ -60,51 +66,52 @@ const retrieveTimeStamppData = async function(masterDataArray: Array<wordData>){
     let downloadCommand = `youtube-dl --skip-download -o '%(id)s.%(ext)s' --write-auto-sub 'https://www.youtube.com/watch?v=`
 
 
-    let youtubeVideoIDs: Array<Array<String>> = relevantObjects.map( ro => ro.videoIds )
+    let youtubeVideoIDs: Array<Array<string>> = relevantObjects.map( ro => ro.videoIds )
     let downloadCommands: Array<String> = youtubeVideoIDs.map( youtubeIdArr => {return downloadCommand + youtubeIdArr[0] + '\''}) //command that downloads transcript for each word given in the masterArray
-    
-    console.log(youtubeVideoIDs)
-    console.log(downloadCommands)
     
     downloadCommands.forEach( downloadCommand => execSync(`${downloadCommand}`, {stdio: 'inherit', cwd: scriptsFolder}))
     
     let files = youtubeVideoIDs.map( youtubeId => fs.readFileSync(`${scriptsFolder}/${youtubeId[0]}.en.vtt`,'utf8'))
 
-    console.log('readingFiles', files)
-    let scripts = []
-    scripts = files.map( file => {
+    let scripts: Array<scriptData> = [] // storing all of the normalized data for each script
+    scripts = files.map( (file,i) => {
+
+        let youtubeId = youtubeVideoIDs[i][0]
         let script = file.replace(/(\<c\> )/gm, '')
-                   .replace(/(\<\/c\>)/gm, '')
-                   .replace(/(WEBVTT\nKind: captions\nLanguage: en)/gm, '')
-                   .replace(/(-->.*align.*)\n.*/gm, '')
-                   .replace(/\s/gm, '')
-                   .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/, '')
-                   .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}(?=[a-zA-Z]+)/gm, '')
+                         .replace(/(\<\/c\>)/gm, '')
+                         .replace(/(WEBVTT\nKind: captions\nLanguage: en)/gm, '')
+                         .replace(/(-->.*align.*)\n.*/gm, '')
+                         .replace(/\s/gm, '')
+                         .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/, '')
+                         .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}(?=[a-zA-Z]+)/gm, '')
 
 
-    words = script.match(/[a-zA-Z']+/gm)
-    times = script.match(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/gm)
+        words = script.match(/[a-zA-Z']+/gm)
+        times = script.match(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/gm)
+        
         return {
+            youtubeId,
             words,
             times
         }
-})
-    
-    console.log('afterRegex', scripts)
-    // words.forEach( (w,i) => timeData.push(
-    //     {
-    //         word: w,
-    //         matchedEpisodes: [
-    //             {
-    //                 videoId: youtubeVideoID,
-    //                 timeStamp: {
-    //                     start: times[i],
-    //                 }
-    //             }
-    //         ],
-    //         isReady: false
-    //     }
-    // ))
+    })
+
+    scripts.forEach( script => script.words.forEach( (w,i) => timeData.push(
+        {
+            word: w,
+            matchedEpisodes: [
+                {
+                    videoId: script.youtubeId,
+                    timeStamp: {
+                        start: script.times[i],
+                    }
+                }
+            ],
+            isReady: false
+        }
+    )))
+
+    console.log(timeData)
 
     // times.forEach( (t,i) => parsedTimes[i] = parseToSeconds(t))
     // parsedTimes.forEach( (pt,i) => durations.push(durationCalc(pt, parsedTimes[i+1])))
@@ -173,6 +180,7 @@ const retrieveTimeStamppData = async function(masterDataArray: Array<wordData>){
       
     // //TODO: write code that saves timeData into the 'episodes' collection, using the videoID property
     // //TODO: delete file after done
+    // //TODO: handle erros: if word is not script - transcript the next videoId, by shift() to the videoIds arr, and call the function again (recursion)
     // // console.log(timeData)
     
     // return timeData
