@@ -12,7 +12,7 @@ const generateVideo = require('../modules/videoGenerator3')
 import dbFirstSetup = require('../modules/dbFirstSetup')
 export import episodeDbObject = dbFirstSetup.episodeDbObject
 
-interface wordData {
+export interface wordData {
   word: String,
   season: String,
   episode: String,

@@ -1,23 +1,22 @@
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema
-
-const SearchedWordSchema = new Schema({
+"use strict";
+exports.__esModule = true;
+var mongoose = require("mongoose");
+// import { Schema } as Schema from 'mongoose'
+// const mongoose = require('mongoose')
+var Schema = mongoose.Schema;
+var SearchedWordSchema = new Schema({
     word: String,
-    matchedEpisodes: [Schema(
-        {
+    matchedEpisodes: [Schema({
             videoId: String,
             timeStamp: {
                 start: String,
                 duration: String
             }
-        },
-        {
+        }, {
             _id: false
         })
     ],
     isReady: Boolean
-},{strict:false})
-
-const SearchedWord = mongoose.model('SearchedWord', SearchedWordSchema)
-
-module.exports = SearchedWord
+}, { strict: false });
+var SearchedWord = mongoose.model('SearchedWord', SearchedWordSchema);
+module.exports = SearchedWord;
