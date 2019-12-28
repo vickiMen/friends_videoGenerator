@@ -5,7 +5,12 @@ const Episode = require("../models/Episode")
 const SearchedWord = require("../models/SearchedWord")
 const execSync = require("child_process").execSync
 const exec = require("child_process").exec
-const apiKey = "AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI"
+// const apiKey = "AIzaSyDyJ1bQVTZNuU8YUjnA9YiHu-mji6VIf1w"
+// const apiKey = "AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI"
+// const apiKey = "AIzaSyAcvhgH1AvRAY3aFF6NUUdyD4xRBko0Rm8"
+// const apiKey = "AIzaSyC1T3eU1z3QYpQQ3CN6YCWFpwEXlOmuxyk"
+// const apiKey = "AIzaSyDcHSDQljRnIBiLNMxXKlpqYy2rT2OmoWc"
+const apiKey = "AIzaSyAxWjtdgv4cK7S7a-iSagpEzOgF9gZnd3k"
 const rp = require("request-promise")
 const getTranscript = require('../modules/transcript')
 const generateVideo = require('../modules/videoGenerator3')
@@ -30,6 +35,8 @@ router.get("/getVideo/:sentence", async (req, res) => {
   
   const sentenceToBuild: String = req.params.sentence
   const wordsToLookup: Array<string> = sentenceToBuild.split(' ')
+
+  console.log('wordsToLookup', wordsToLookup)
   
   const findEpisode = async function(word,i){
       const getEpisode = Episode.aggregate([
@@ -64,7 +71,7 @@ router.get("/getVideo/:sentence", async (req, res) => {
     wordsLookupPromises.push(
       SearchedWord.findOne(
         {
-          word: new RegExp(word, 'i'),
+          word: new RegExp('^' + word + '$', 'i'),
           isReady: true
         },
         {
@@ -85,8 +92,10 @@ router.get("/getVideo/:sentence", async (req, res) => {
 
   const mapLoop = async function(){
     const promises = await foundSearchedWords.map( async (fsw,i) => {
+      // console.log('fsw', fsw)
       if (fsw == null) {
         const foundEpisode = await findEpisode(wordsToLookup[i],i)
+        // await console.log('foundEpisode', foundEpisode)
         const master = await isMasterReadyVideoId()
         return {foundEpisode, master}
       }
@@ -103,7 +112,8 @@ router.get("/getVideo/:sentence", async (req, res) => {
       await getTranscript(masterWordsData)
       // await generateVideo(wordsToLookup)
     }
-
+    
+    // await generateVideo(wordsToLookup)
   
   mapLoop()
   

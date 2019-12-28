@@ -36,6 +36,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 exports.__esModule = true;
+var path = require("path");
+var os = require('os');
 var fs = require('fs');
 var execSync = require('child_process').execSync;
 var mongoose = require('mongoose');
@@ -51,7 +53,7 @@ var relevantObjects = [];
 var youtubeVideoIDs = [];
 var scriptsFolder = '/Users/vickimenashe/Documents/Elevation/frienerator/server/modules/youtube_transcripts';
 var durationCalc = function (startTime, nextStartTime) {
-    return nextStartTime - startTime;
+    return nextStartTime - startTime + 0.35;
 };
 var parseToSeconds = function (timeStamp) {
     var a = timeStamp.split(':');
@@ -65,47 +67,78 @@ var parseSecToStr = function (timeFloat) {
 };
 var retrieveTimeStamppData = function (masterDataArray) {
     return __awaiter(this, void 0, void 0, function () {
-        var downloadCommand, files, removeUndefined, i, j, updatedItems, updatedItemsNew, indexes;
+        var downloadCommand, runCommand, removeUndefined, indexesToDel, i, j, i, doesExistInTranscript, updatedItems, updatedItemsNew, indexes;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    console.log('masterDataArray from transcript', masterDataArray);
                     // TODO: remove old files first
                     relevantObjects = masterDataArray.filter(function (mw) { return !mw.matchedEpisodes; });
                     downloadCommand = "youtube-dl --skip-download -o '%(id)s.%(ext)s' --write-auto-sub 'https://www.youtube.com/watch?v=";
                     youtubeVideoIDs = relevantObjects.map(function (ro) { return ro.videoIds; });
-                    downloadCommands = youtubeVideoIDs.map(function (youtubeIdArr) { return downloadCommand + youtubeIdArr[0] + '\''; }); //command that downloads transcript for each word given in the masterArray
-                    downloadCommands.forEach(function (downloadCommand) { return execSync("" + downloadCommand, { stdio: 'inherit', cwd: scriptsFolder }); });
-                    files = youtubeVideoIDs.map(function (youtubeId) { return fs.readFileSync(scriptsFolder + "/" + youtubeId[0] + ".en.vtt", 'utf8'); });
-                    scripts = files.map(function (file, i) {
-                        var youtubeId = youtubeVideoIDs[i][0];
-                        var script = file.replace(/(\<c\> )/gm, '')
-                            .replace(/(\<\/c\>)/gm, '')
-                            .replace(/(WEBVTT\nKind: captions\nLanguage: en)/gm, '')
-                            .replace(/(-->.*align.*)\n.*/gm, '')
-                            .replace(/\s/gm, '')
-                            .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/, '')
-                            .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}(?=[a-zA-Z]+)/gm, '');
-                        words = script.match(/[a-zA-Z']+/gm);
-                        words = words.map(function (word) { return word.toLowerCase(); });
-                        times = script.match(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/gm);
-                        return {
-                            youtubeId: youtubeId,
-                            words: words,
-                            times: times
-                        };
-                    });
-                    scripts.forEach(function (script) { return script.words.forEach(function (w, i) { return timeData.push({
-                        word: w,
-                        matchedEpisodes: [
-                            {
-                                videoId: script.youtubeId,
-                                timeStamp: {
-                                    start: script.times[i]
-                                }
+                    runCommand = function () {
+                        downloadCommands = youtubeVideoIDs.map(function (youtubeIdArr) { return downloadCommand + youtubeIdArr[0] + '\''; }); //command that downloads transcript for each word given in the masterArray
+                        downloadCommands.forEach(function (downloadCommand) { return execSync("" + downloadCommand, { stdio: 'inherit', cwd: scriptsFolder }); });
+                        var fileNames = youtubeVideoIDs.map(function (youtubeIdArr) { return scriptsFolder + "/" + youtubeIdArr[0] + ".en.vtt"; });
+                        var doExist = fileNames.map(function (fileName) { return fs.existsSync(fileName); });
+                        doExist.forEach(function (videoIdExists, i) {
+                            if (!videoIdExists) {
+                                youtubeVideoIDs[i].shift();
+                                runCommand();
                             }
-                        ],
-                        isReady: false
-                    }); }); });
+                        });
+                        var files = youtubeVideoIDs.map(function (youtubeId) { return fs.readFileSync(scriptsFolder + "/" + youtubeId[0] + ".en.vtt", 'utf8'); });
+                        scripts = files.map(function (file, i) {
+                            var youtubeId = youtubeVideoIDs[i][0];
+                            var script = file.replace(/(\<c\> )/gm, '')
+                                .replace(/(\<\/c\>)/gm, '')
+                                .replace(/(WEBVTT\nKind: captions\nLanguage: en)/gm, '')
+                                .replace(/(-->.*align.*)\n.*/gm, '')
+                                .replace(/\s/gm, '')
+                                .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/, '')
+                                .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}(?=[a-zA-Z]+)/gm, '');
+                            words = script.match(/[a-zA-Z']+/gm);
+                            words = words.map(function (word) { return word.toLowerCase(); });
+                            times = script.match(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/gm);
+                            return {
+                                youtubeId: youtubeId,
+                                words: words,
+                                times: times
+                            };
+                        });
+                        console.log('downloadCommands', downloadCommands);
+                    };
+                    runCommand();
+                    scripts.forEach(function (script) { return script.words.forEach(function (w, i) {
+                        if (i == 0) {
+                            timeData.push({
+                                word: w,
+                                matchedEpisodes: [
+                                    {
+                                        videoId: script.youtubeId,
+                                        timeStamp: {
+                                            start: '00:00:01.123'
+                                        }
+                                    }
+                                ],
+                                isReady: false
+                            });
+                        }
+                        else {
+                            timeData.push({
+                                word: w,
+                                matchedEpisodes: [
+                                    {
+                                        videoId: script.youtubeId,
+                                        timeStamp: {
+                                            start: script.times[i - 1]
+                                        }
+                                    }
+                                ],
+                                isReady: false
+                            });
+                        }
+                    }); });
                     removeUndefined = timeData.filter(function (td) { return td.matchedEpisodes[0].timeStamp.start == undefined; });
                     removeUndefined.forEach(function (ru) { return timeData.splice(timeData.indexOf(ru), 1); });
                     timeData.forEach(function (td, i) {
@@ -116,17 +149,33 @@ var retrieveTimeStamppData = function (masterDataArray) {
                             td.matchedEpisodes[0].timeStamp.duration = parseSecToStr(durationCalc(parseToSeconds(td.matchedEpisodes[0].timeStamp.start), parseToSeconds(timeData[i + 1].matchedEpisodes[0].timeStamp.start)));
                         }
                     });
+                    indexesToDel = [];
+                    // console.log('timeData raw', timeData)
                     for (i = 0; i < timeData.length; i++) {
                         for (j = i + 1; j < timeData.length; j++) {
                             if (timeData[i].word == timeData[j].word) {
                                 timeData[i].matchedEpisodes.push(timeData[j].matchedEpisodes[0]);
-                                timeData.splice(j, 1);
+                                indexesToDel.push(j);
+                                timeData[j].word = "goingToBeDeleted" + j;
                             }
                         }
                     }
+                    indexesToDel.sort(function (a, b) { return a - b; });
+                    console.log('indexesToDel', indexesToDel);
+                    for (i = indexesToDel.length - 1; i >= 0; i--) {
+                        timeData.splice(indexesToDel[i], 1);
+                    }
+                    // check id the desired word is actually in the trenascript
+                    console.log('blablabal', timeData.filter(function (td) { return td.word == 'umbrella'; }));
+                    doesExistInTranscript = timeData.some(function (td) { return td.word == 'umbrella'; });
+                    if (doesExistInTranscript == false) {
+                        youtubeVideoIDs.forEach(function (youtubeIdArr) { return youtubeIdArr.shift(); });
+                        console.log('youtubeVideoIDs', youtubeVideoIDs);
+                        runCommand();
+                    }
                     timeData.forEach(function (td) {
                         firstDbUpdatePromises.push(searchedWord.findOneAndUpdate({
-                            word: td.word
+                            word: new RegExp(td.word, 'i')
                         }, {
                             $addToSet: {
                                 matchedEpisodes: {
@@ -143,6 +192,7 @@ var retrieveTimeStamppData = function (masterDataArray) {
                     updatedItemsNew = updatedItems.filter(function (ui) { return ui != null; });
                     indexes = updatedItemsNew.map(function (uin) { return timeData.findIndex(function (td) { return td.word == uin.word; }); });
                     indexes.forEach(function (index) { return timeData.splice(index, 1); });
+                    // console.log('timeData after updates', timeData)
                     timeData.forEach(function (td) {
                         var newDbObject = new searchedWord({
                             word: td.word,
@@ -151,15 +201,13 @@ var retrieveTimeStamppData = function (masterDataArray) {
                         });
                         dbUpdatePromises.push(newDbObject.save());
                     });
-                    dbUpdatePromises.push(searchedWord.update({
+                    dbUpdatePromises.push(searchedWord.updateMany({
                         $where: "this.matchedEpisodes.length >= 10",
                         isReady: false
                     }, {
                         $set: {
                             isReady: true
                         }
-                    }, {
-                        multi: true
                     }));
                     return [4 /*yield*/, Promise.all(dbUpdatePromises)
                         // //TODO: write code that saves timeData into the 'episodes' collection, using the videoID property

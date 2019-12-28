@@ -35,6 +35,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 var fs = require('fs');
+var os = require('os');
 var path = require("path");
 var execSync = require('child_process').execSync;
 var mongoose = require('mongoose');
@@ -59,30 +60,37 @@ var generateVideo = function (wordsToLookUpArr) {
             switch (_a.label) {
                 case 0:
                     wordsToLookUpArr.forEach(function (word) {
-                        console.log('word:');
+                        // console.log('word:', word)
                         dbSearchInternalPromises.push(searchedWord.findOne({
-                            word: new RegExp(word, 'i')
+                            word: new RegExp('^' + word + '$', 'i')
                         }, {
                             _id: 0,
                             matchedEpisodes: 1
                         }));
                     });
-                    console.log('promises:', dbSearchInternalPromises);
                     return [4 /*yield*/, Promise.all(dbSearchInternalPromises)];
                 case 1:
                     matchedEpisodes = _a.sent();
                     console.log('matchedEpisodes: ', matchedEpisodes);
+                    console.log('videoId: ', matchedEpisodes[0].matchedEpisodes[0].videoId);
+                    console.log('videoId: ', matchedEpisodes[0].matchedEpisodes[0].timeStamp);
+                    console.log('videoId: ', matchedEpisodes[1].matchedEpisodes[0].videoId);
+                    console.log('videoId: ', matchedEpisodes[1].matchedEpisodes[0].timeStamp);
                     masterMatchedEpisodesData = [];
                     masterMatchedEpisodesData = matchedEpisodes.map(function (me) { return me.matchedEpisodes.flat(); });
-                    // console.log('matchedEpisodes: ', matchedEpisodes)
-                    // console.log('here:', masterMatchedEpisodesData)
+                    console.log('matchedEpisodes: ', matchedEpisodes);
+                    console.log('masterMatchedEpisodesData:', masterMatchedEpisodesData);
                     masterMatchedEpisodesData.forEach(function (ed, i) {
                         var chosenEpisode = ed[selectRandomEpisode(ed)];
                         execSync("youtube-dl -g \"https://www.youtube.com/watch?v=" + chosenEpisode.videoId + "\" -f best > " + chosenEpisode.videoId + ".txt;", { stdio: 'inherit', cwd: downloadFolder });
-                        fs.readdirSync(downloadFolder).forEach(function (file) {
-                            chosenEpisode.output = fs.readFileSync(downloadFolder + "/" + file, 'utf8');
-                            chosenEpisode.output = chosenEpisode.output.slice(0, -1);
-                        });
+                        // let output: string
+                        chosenEpisode.output = fs.readFileSync(downloadFolder + "/" + chosenEpisode.videoId + ".txt", 'utf8');
+                        console.log('chosenEpisode.output before slice', chosenEpisode.output);
+                        var output = chosenEpisode.output.split(os.EOL);
+                        chosenEpisode.output = output[0];
+                        // chosenEpisode.output.slice(0,-1)
+                        // chosenEpisode.output = outputs.splice(0,1)
+                        console.log('chosenEpisode.output after slice', output);
                         execSync("ffmpeg -ss \"" + chosenEpisode.timeStamp.start + "\" -i \"" + chosenEpisode.output + "\" -t \"" + chosenEpisode.timeStamp.duration + "\" video_" + i + ".mp4", { stdio: 'inherit', cwd: videoCutsFolder });
                     });
                     finalCommands = [];

@@ -43,7 +43,12 @@ var Episode = require("../models/Episode");
 var SearchedWord = require("../models/SearchedWord");
 var execSync = require("child_process").execSync;
 var exec = require("child_process").exec;
-var apiKey = "AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI";
+// const apiKey = "AIzaSyDyJ1bQVTZNuU8YUjnA9YiHu-mji6VIf1w"
+// const apiKey = "AIzaSyClzlqLX8CFQoL8l4ZwKjmp8LE-8KS4zjI"
+// const apiKey = "AIzaSyAcvhgH1AvRAY3aFF6NUUdyD4xRBko0Rm8"
+// const apiKey = "AIzaSyC1T3eU1z3QYpQQ3CN6YCWFpwEXlOmuxyk"
+// const apiKey = "AIzaSyDcHSDQljRnIBiLNMxXKlpqYy2rT2OmoWc"
+var apiKey = "AIzaSyAxWjtdgv4cK7S7a-iSagpEzOgF9gZnd3k";
 var rp = require("request-promise");
 var getTranscript = require('../modules/transcript');
 var generateVideo = require('../modules/videoGenerator3');
@@ -60,6 +65,7 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                 ;
                 sentenceToBuild = req.params.sentence;
                 wordsToLookup = sentenceToBuild.split(' ');
+                console.log('wordsToLookup', wordsToLookup);
                 findEpisode = function (word, i) {
                     return __awaiter(this, void 0, void 0, function () {
                         var getEpisode;
@@ -112,7 +118,7 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                 };
                 wordsToLookup.forEach(function (word) {
                     wordsLookupPromises.push(SearchedWord.findOne({
-                        word: new RegExp(word, 'i'),
+                        word: new RegExp('^' + word + '$', 'i'),
                         isReady: true
                     }, {
                         _id: 0,
@@ -155,7 +161,9 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                                             switch (_a.label) {
                                                 case 0:
                                                     if (!(fsw == null)) return [3 /*break*/, 3];
-                                                    return [4 /*yield*/, findEpisode(wordsToLookup[i], i)];
+                                                    return [4 /*yield*/, findEpisode(wordsToLookup[i], i)
+                                                        // await console.log('foundEpisode', foundEpisode)
+                                                    ];
                                                 case 1:
                                                     foundEpisode = _a.sent();
                                                     return [4 /*yield*/, isMasterReadyVideoId()];
@@ -193,6 +201,7 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                         });
                     });
                 };
+                // await generateVideo(wordsToLookup)
                 mapLoop();
                 retrieveIdsFromAPI = function (wordDataObj) {
                     return __awaiter(this, void 0, void 0, function () {

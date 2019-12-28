@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const path = require("path")
 const execSync = require('child_process').execSync;
 const mongoose = require('mongoose')
@@ -37,10 +38,10 @@ const grabMp4Ext = function(file) {
 const generateVideo = async function(wordsToLookUpArr: Array<string>){
 
     wordsToLookUpArr.forEach( word => {
-        console.log('word:')
+        // console.log('word:', word)
         dbSearchInternalPromises.push(
             searchedWord.findOne({
-                word: new RegExp(word, 'i')
+                word: new RegExp('^' + word + '$', 'i')
             },
             {
                 _id: 0,
@@ -49,24 +50,33 @@ const generateVideo = async function(wordsToLookUpArr: Array<string>){
         )
     })
 
-    console.log('promises:', dbSearchInternalPromises)
+    // console.log('promises:', dbSearchInternalPromises)
 
     const matchedEpisodes: any = await Promise.all(dbSearchInternalPromises)
     console.log('matchedEpisodes: ', matchedEpisodes)
+    console.log('videoId: ', matchedEpisodes[0].matchedEpisodes[0].videoId)
+    console.log('videoId: ', matchedEpisodes[0].matchedEpisodes[0].timeStamp)
+    console.log('videoId: ', matchedEpisodes[1].matchedEpisodes[0].videoId)
+    console.log('videoId: ', matchedEpisodes[1].matchedEpisodes[0].timeStamp)
     let masterMatchedEpisodesData: Array<Array<videoData>> = []
     masterMatchedEpisodesData = matchedEpisodes.map( me => me.matchedEpisodes.flat())
-    // console.log('matchedEpisodes: ', matchedEpisodes)
-    // console.log('here:', masterMatchedEpisodesData)
+    console.log('matchedEpisodes: ', matchedEpisodes)
+    console.log('masterMatchedEpisodesData:', masterMatchedEpisodesData)
 
     masterMatchedEpisodesData.forEach( (ed, i) => {
         let chosenEpisode = ed[selectRandomEpisode(ed)]
-        
         execSync(`youtube-dl -g "https://www.youtube.com/watch?v=${chosenEpisode.videoId}" -f best > ${chosenEpisode.videoId}.txt;`, {stdio: 'inherit', cwd: downloadFolder})
+    
 
-        fs.readdirSync(downloadFolder).forEach( file => {
-            chosenEpisode.output = fs.readFileSync(`${downloadFolder}/${file}` , 'utf8')
-            chosenEpisode.output = chosenEpisode.output.slice(0,-1)
-        })
+        // let output: string
+        chosenEpisode.output = fs.readFileSync(`${downloadFolder}/${chosenEpisode.videoId}.txt` , 'utf8')
+        console.log('chosenEpisode.output before slice', chosenEpisode.output)
+        let output = chosenEpisode.output.split(os.EOL)
+        chosenEpisode.output = output[0]
+        // chosenEpisode.output.slice(0,-1)
+        
+        // chosenEpisode.output = outputs.splice(0,1)
+        console.log('chosenEpisode.output after slice', output)
 
          execSync(`ffmpeg -ss "${chosenEpisode.timeStamp.start}" -i "${chosenEpisode.output}" -t "${chosenEpisode.timeStamp.duration}" video_${i}.mp4`, {stdio: 'inherit', cwd: videoCutsFolder})
 
