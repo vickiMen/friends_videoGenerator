@@ -1,8 +1,6 @@
-"use strict";
-exports.__esModule = true;
-var mongoose = require("mongoose");
+// import * as mongoose from 'mongoose'
 // import { Schema } as Schema from 'mongoose'
-// const mongoose = require('mongoose')
+var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var SearchedWordSchema = new Schema({
     word: String,
@@ -10,6 +8,7 @@ var SearchedWordSchema = new Schema({
             videoId: String,
             timeStamp: {
                 start: String,
+                end: String,
                 duration: String
             }
         }, {

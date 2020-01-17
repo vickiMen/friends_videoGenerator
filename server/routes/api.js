@@ -161,9 +161,7 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                                             switch (_a.label) {
                                                 case 0:
                                                     if (!(fsw == null)) return [3 /*break*/, 3];
-                                                    return [4 /*yield*/, findEpisode(wordsToLookup[i], i)
-                                                        // await console.log('foundEpisode', foundEpisode)
-                                                    ];
+                                                    return [4 /*yield*/, findEpisode(wordsToLookup[i], i)];
                                                 case 1:
                                                     foundEpisode = _a.sent();
                                                     return [4 /*yield*/, isMasterReadyVideoId()];
@@ -181,20 +179,14 @@ router.get("/getVideo/:sentence", function (req, res) { return __awaiter(void 0,
                                     }); })];
                                 case 1:
                                     promises = _a.sent();
-                                    return [4 /*yield*/, Promise.all(promises)
-                                        // await console.log(masterWordsData)
-                                        // await console.log(masterWordsData[1].videoIds)
-                                    ];
+                                    return [4 /*yield*/, Promise.all(promises)];
                                 case 2:
                                     _a.sent();
-                                    // await console.log(masterWordsData)
-                                    // await console.log(masterWordsData[1].videoIds)
-                                    return [4 /*yield*/, getTranscript(masterWordsData)
-                                        // await generateVideo(wordsToLookup)
-                                    ];
+                                    return [4 /*yield*/, getTranscript(masterWordsData)];
                                 case 3:
-                                    // await console.log(masterWordsData)
-                                    // await console.log(masterWordsData[1].videoIds)
+                                    _a.sent();
+                                    return [4 /*yield*/, generateVideo(wordsToLookup)];
+                                case 4:
                                     _a.sent();
                                     return [2 /*return*/];
                             }

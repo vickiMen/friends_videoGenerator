@@ -87,19 +87,20 @@ mongoose.connect(`mongodb://vicki:${encodeURIComponent(pass)}@ds127506.mlab.com:
 const searchedWord = require('../models/SearchedWord')
 const episode = require('../models/Episode')
 
-// const blabla = new searchedWord({
-//     word: 'blabla',
-//     matchedEpisodes: [
-//         {
-//             videoId: 'cWplCCNbxrs',
-//             timeStamp: {
-//                 start: '00:00:23.123',
-//                 duration: '00:00:01.000'
-//             }
-//         }
-//     ],
-//     isReady: false
-// })
+const blabla = new searchedWord({
+    word: 'blabla',
+    matchedEpisodes: [
+        {
+            videoId: 'cWplCCNbxrs',
+            timeStamp: {
+                start: '00:00:23.123',
+                end: '22:23:22.233',
+                duration: '00:00:01.000'
+            }
+        }
+    ],
+    isReady: false
+})
 
 // const blabla = new episode({
 //     episode: 1,
@@ -109,11 +110,11 @@ const episode = require('../models/Episode')
 //     videoIds: []
 // })
 
-//     blabla.save( function(err, data){
-//         if(err){
-//             console.log(err)
-//         }
-//         else {
-//             console.log(data)
-//         }
-//     })
+    blabla.save( function(err, data){
+        if(err){
+            console.log(err)
+        }
+        else {
+            console.log(data)
+        }
+    })

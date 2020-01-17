@@ -20,6 +20,7 @@ interface scriptData {
 
 interface timeStampObject {
     start: string,
+    end?: string,
     duration?: string
 }
 
@@ -47,7 +48,7 @@ let youtubeVideoIDs: Array<Array<string>> = []
 const scriptsFolder = '/Users/vickimenashe/Documents/Elevation/frienerator/server/modules/youtube_transcripts'
 
 const durationCalc = function(startTime: number, nextStartTime: number){
-    return nextStartTime - startTime + 0.35
+    return nextStartTime - startTime
 }
 
 const parseToSeconds = function(timeStamp: string){
@@ -98,46 +99,48 @@ const retrieveTimeStamppData = async function(masterDataArray: Array<wordData>){
     
             let youtubeId = youtubeVideoIDs[i][0]
             let script = file.replace(/(\<c\> )/gm, '')
-                             .replace(/(\<\/c\>)/gm, '')
-                             .replace(/(WEBVTT\nKind: captions\nLanguage: en)/gm, '')
-                             .replace(/(-->.*align.*)\n.*/gm, '')
-                             .replace(/\s/gm, '')
-                             .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/, '')
-                             .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}(?=[a-zA-Z]+)/gm, '')
+                         .replace(/(\<\/c\>)/gm, '')
+                         .replace(/(WEBVTT\nKind: captions\nLanguage: en)/gm, '')
+                         .replace(/(-->.*align.*)\n.*/gm, '')
+                         .replace(/\n([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3} \n /gm, '')
+                         .replace(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}\s*(\[[aA]pplause\]|\[[Mm]usic\]|\[[Ll]aughter\])/gm, '')
+                         .replace(/\s/gm, '')
     
-    
-            words = script.match(/[a-zA-Z']+/gm)
+            words = script.match(/[a-zA-Z'-]+|(>\d+)|(\d+<)|(\$+\d+\,*\d*)|(>\d{2}:\d{2}<)/gm)
             words = words.map( word => word.toLowerCase())
             times = script.match(/([0-9]{2}\:){2}[0-9]{2}\.[0-9]{3}/gm)
             
+            // if (times.length != words.length){
+            //     times.splice(0,0,'00:00:00.123')
+            // }
+
             return {
                 youtubeId,
                 words,
                 times
             }
         })
-        console.log('downloadCommands', downloadCommands)
     }
 
     runCommand()
 
     scripts.forEach( script => script.words.forEach( (w,i) => {
-        if ( i==0 ){
-            timeData.push(
-                {
-                    word: w,
-                    matchedEpisodes: [
-                        {
-                            videoId: script.youtubeId,
-                            timeStamp: {
-                                start: '00:00:01.123',
-                            }
-                        }
-                    ],
-                    isReady: false
-                }
-        )}
-        else {
+        // if ( i==0 ){
+        //     timeData.push(
+        //         {
+        //             word: w,
+        //             matchedEpisodes: [
+        //                 {
+        //                     videoId: script.youtubeId,
+        //                     timeStamp: {
+        //                         start: '00:00:00.000',
+        //                     }
+        //                 }
+        //             ],
+        //             isReady: false
+        //         }
+        // )}
+        // else {
             timeData.push(
             {
                 word: w,
@@ -145,66 +148,82 @@ const retrieveTimeStamppData = async function(masterDataArray: Array<wordData>){
                     {
                         videoId: script.youtubeId,
                         timeStamp: {
-                            start: script.times[i-1],
+                            start: script.times[i],
+                            end: script.times[i+1]
                         }
                     }
                 ],
                 isReady: false
             }
-        )}}))
+        )}
+    // }
+    ))
+        
+        // timeData.forEach( td => console.log( 'word:', td.word, 'timeStamp', td.matchedEpisodes[0].timeStamp) )
     
-    // timeData[0].matchedEpisodes[0].timeStamp.start = '00:00:01.123'
-
-    // const cherry = timeData.filter( td => td.word == 'cherry' )
-    // console.log('cherry', cherry)
-    // console.log('start:', cherry[0].matchedEpisodes[0].timeStamp.start)
-    // console.log('duration:', cherry[0].matchedEpisodes[0].timeStamp.duration)
     const removeUndefined = timeData.filter( td => td.matchedEpisodes[0].timeStamp.start == undefined)
-    removeUndefined.forEach( ru => timeData.splice(timeData.indexOf(ru),1) )
+
+    const undefinedIndices = removeUndefined.map( ru => timeData.indexOf(ru) )
     
+    undefinedIndices.sort(function(a, b){return a - b})
+
+    for (let i=undefinedIndices.length-1; i>=0; i--){
+        timeData.splice(undefinedIndices[i],1)
+    }
+
+    // removeUndefined.forEach( ru => timeData.splice(timeData.indexOf(ru),1) )
+    
+    const deleteItems: Array<number> = []
+
     timeData.forEach( (td,i) => {
         if (i == (timeData.length-1)){
             td.matchedEpisodes[0].timeStamp.duration = '00:00:03.123'
+            td.matchedEpisodes[0].timeStamp.end = '01:00:03.123'
         }
         else {
-            td.matchedEpisodes[0].timeStamp.duration =  parseSecToStr(
-                durationCalc(
-                    parseToSeconds(td.matchedEpisodes[0].timeStamp.start), 
-                    parseToSeconds(timeData[i+1].matchedEpisodes[0].timeStamp.start) 
-                    ))
+            const durationNum = durationCalc(
+                parseToSeconds(td.matchedEpisodes[0].timeStamp.start), 
+                parseToSeconds(timeData[i+1].matchedEpisodes[0].timeStamp.start) 
+            )
+            durationNum < 0.8 ? deleteItems.push(i) : td.matchedEpisodes[0].timeStamp.duration =  parseSecToStr(durationNum)
+            // durationNum > 2 ? deleteItems.push(i) : td.matchedEpisodes[0].timeStamp.duration =  parseSecToStr(durationNum)
         }
     })
 
-    const indexesToDel = []
+    
+    deleteItems.sort(function(a, b){return a - b}) //first remove all words with duration lower than 0.250sec
+    console.log('deleteItemsLowDuration', deleteItems)
+    for (let i=deleteItems.length-1; i>=0; i--){
+        timeData.splice(deleteItems[i],1)
+    }
 
-    // console.log('timeData raw', timeData)
+    const indicesToDel = []
 
-    for (let i=0; i<timeData.length; i++){
+    for (let i=0; i<timeData.length; i++){ //merge duplicates and remove from master array
         for (let j=i+1; j<timeData.length; j++){
             if (timeData[i].word == timeData[j].word){
                 timeData[i].matchedEpisodes.push(timeData[j].matchedEpisodes[0])
-                indexesToDel.push(j)
+                indicesToDel.push(j)
                 timeData[j].word = `goingToBeDeleted${j}`
             }
         }
     }
 
     
-    indexesToDel.sort(function(a, b){return a - b})
-    console.log('indexesToDel', indexesToDel)
+    indicesToDel.sort(function(a, b){return a - b})
 
-    for (let i=indexesToDel.length-1; i>=0; i--){
-        timeData.splice(indexesToDel[i],1)
+    for (let i=indicesToDel.length-1; i>=0; i--){
+        timeData.splice(indicesToDel[i],1)
     }
 
 
-    // check id the desired word is actually in the trenascript
-    console.log('blablabal', timeData.filter(td => td.word == 'umbrella'))
-    const doesExistInTranscript = timeData.some(td => td.word == 'umbrella')
+    // check if the desired word is actually in the trenascript
+    // console.log('blablabal', timeData.filter(td => td.word == 'umbrella'))
+    const doesExistInTranscript = timeData.some(td => td.word == 'girl')
 
     if (doesExistInTranscript == false ){
         youtubeVideoIDs.forEach( youtubeIdArr => youtubeIdArr.shift() )
-        console.log('youtubeVideoIDs',youtubeVideoIDs)
+        // console.log('youtubeVideoIDs',youtubeVideoIDs)
         runCommand()
     }
     
@@ -212,7 +231,7 @@ const retrieveTimeStamppData = async function(masterDataArray: Array<wordData>){
         firstDbUpdatePromises.push(
             searchedWord.findOneAndUpdate(
                 {
-                    word: new RegExp(td.word, 'i')
+                    word: td.word
                 },
                 {
                     $addToSet: {
@@ -231,11 +250,14 @@ const retrieveTimeStamppData = async function(masterDataArray: Array<wordData>){
     const updatedItems = await Promise.all(firstDbUpdatePromises)
     
     const updatedItemsNew = updatedItems.filter( ui => ui != null)
-    // console.log('updatedItems not null', updatedItemsNew)
-    const indexes = updatedItemsNew.map( uin => timeData.findIndex( td => td.word == uin.word ))
     
-    indexes.forEach( index => timeData.splice(index,1))
-    // console.log('timeData after updates', timeData)
+    const indicesEqualToNull = updatedItemsNew.map( uin => timeData.findIndex( td => td.word == uin.word ))
+    
+    indicesEqualToNull.sort(function(a, b){return a - b})
+
+    for (let i=indicesEqualToNull.length-1; i>=0; i--){
+        timeData.splice(indicesEqualToNull[i],1)
+    }
 
     timeData.forEach(td => {
         const newDbObject = new searchedWord({

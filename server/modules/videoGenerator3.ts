@@ -15,6 +15,7 @@ let videoOutputs: Array<string> = []
 
 interface timeStampObj {
     start: string,
+    end: string,
     duration: string
 }
 
@@ -40,13 +41,17 @@ const generateVideo = async function(wordsToLookUpArr: Array<string>){
     wordsToLookUpArr.forEach( word => {
         // console.log('word:', word)
         dbSearchInternalPromises.push(
-            searchedWord.findOne({
-                word: new RegExp('^' + word + '$', 'i')
-            },
-            {
-                _id: 0,
-                matchedEpisodes: 1
-            })
+            searchedWord.aggregate([
+                { $match:
+                   { word: new RegExp('^' + word + '$', 'i') }
+                },
+                {
+                  $sample: { size: 1 }
+                },
+                {
+                  $project: { _id: 0, matchedEpisodes: 1 }
+                }
+              ])
         )
     })
 
@@ -54,17 +59,18 @@ const generateVideo = async function(wordsToLookUpArr: Array<string>){
 
     const matchedEpisodes: any = await Promise.all(dbSearchInternalPromises)
     console.log('matchedEpisodes: ', matchedEpisodes)
-    console.log('videoId: ', matchedEpisodes[0].matchedEpisodes[0].videoId)
-    console.log('videoId: ', matchedEpisodes[0].matchedEpisodes[0].timeStamp)
-    console.log('videoId: ', matchedEpisodes[1].matchedEpisodes[0].videoId)
-    console.log('videoId: ', matchedEpisodes[1].matchedEpisodes[0].timeStamp)
+    // console.log('videoId: ', matchedEpisodes[0].matchedEpisodes[0].videoId)
+    // console.log('videoId: ', matchedEpisodes[0].matchedEpisodes[0].timeStamp)
+    // console.log('videoId: ', matchedEpisodes[1].matchedEpisodes[0].videoId)
+    // console.log('videoId: ', matchedEpisodes[1].matchedEpisodes[0].timeStamp)
     let masterMatchedEpisodesData: Array<Array<videoData>> = []
-    masterMatchedEpisodesData = matchedEpisodes.map( me => me.matchedEpisodes.flat())
+    masterMatchedEpisodesData = matchedEpisodes.flat().map( me => me.matchedEpisodes.flat())
     console.log('matchedEpisodes: ', matchedEpisodes)
     console.log('masterMatchedEpisodesData:', masterMatchedEpisodesData)
 
     masterMatchedEpisodesData.forEach( (ed, i) => {
         let chosenEpisode = ed[selectRandomEpisode(ed)]
+        console.log('videoId', chosenEpisode.videoId, chosenEpisode.timeStamp)
         execSync(`youtube-dl -g "https://www.youtube.com/watch?v=${chosenEpisode.videoId}" -f best > ${chosenEpisode.videoId}.txt;`, {stdio: 'inherit', cwd: downloadFolder})
     
 

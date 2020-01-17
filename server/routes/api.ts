@@ -92,10 +92,8 @@ router.get("/getVideo/:sentence", async (req, res) => {
 
   const mapLoop = async function(){
     const promises = await foundSearchedWords.map( async (fsw,i) => {
-      // console.log('fsw', fsw)
       if (fsw == null) {
         const foundEpisode = await findEpisode(wordsToLookup[i],i)
-        // await console.log('foundEpisode', foundEpisode)
         const master = await isMasterReadyVideoId()
         return {foundEpisode, master}
       }
@@ -107,15 +105,13 @@ router.get("/getVideo/:sentence", async (req, res) => {
     })
 
       await Promise.all(promises)
-      // await console.log(masterWordsData)
-      // await console.log(masterWordsData[1].videoIds)
       await getTranscript(masterWordsData)
-      // await generateVideo(wordsToLookup)
+      await generateVideo(wordsToLookup)
     }
     
-    // await generateVideo(wordsToLookup)
+    await generateVideo(wordsToLookup)
   
-  mapLoop()
+  // mapLoop()
   
 
   const retrieveIdsFromAPI = async function (wordDataObj: wordData) {
