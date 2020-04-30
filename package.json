@@ -15,7 +15,7 @@
     "fs": "0.0.1-security",
     "g": "^2.0.1",
     "handlebars": "^4.5.3",
-    "jquery": "^3.4.1",
+    "jquery": "^3.5.0",
     "mongoose": "^5.8.1",
     "os": "^0.1.1",
     "request": "^2.88.0",
